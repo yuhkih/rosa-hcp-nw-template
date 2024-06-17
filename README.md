@@ -98,7 +98,7 @@ cd rosa-hcp-nw-template
 
 # ROSA HCP Cluster のインストール
 
-
+[こちらの](https://yuhkih.github.io/mcs-docs/docs/rosa-hcp/create-delete/rosa-hcp-enable/)の 3～5の手順を実行します。
 
 # 踏み台用 VPC / Transit Gateway と踏み台のデプロイ
 
