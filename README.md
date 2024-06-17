@@ -62,6 +62,43 @@ cd rosa-hcp-nw-template
 
 作業に必要な CloudFormation の Template や、sh 等は `rosa-nw-template` ディレクトリに含まれています。
 
+# ROSA/RHOAM 用のNetwork のデプロイ
+
+1. 以下の CloudFormation のテンプレートを使用して、ROSA をインストールするためのネットワークを作成します。
+
+    ROSA の Private Cluser (with PrivatreLink) 構成では、ユーザーが自分で必要なネットワークを AWS 内にデプロイした後、ROSA をインストールする必要があります。
+
+    Single AZ 環境の場合は、
+    ```
+     rosa-PRV_NAT_FW-sz.yaml
+    ```
+    
+    Multi AZ 環境の場合は
+
+    ```
+    rosa-PRV_NAT_FW-mz.yaml
+    ```
+    を使用して、デプロイ完了まで待ちます。
+
+    CLI から Single AZ 用の環境を CloudFormation を使って実行する場合は以下のようになります。
+
+    ```
+    aws cloudformation deploy --template-file  rosa-PRV_NAT_FW-sz.yaml --stack-name myROSANetwork --capabilities CAPABILITY_NAMED_IAM
+    ```
+
+    とは言え、実行ログなどは、AWS Console 上から確認した方がわかりやすいかもしれません。
+
+    これをデプロイする事で、Single AZ の場合は、以下のような環境が作成されます。
+
+    ![Single AZ Network](/images/single-az-network.png)
+
+    本来であれば、この VPC には、Private Subnet だけを置いて、Egress 用の VPC を分割したい所ですが、そうなると環境作成の時間もコストもかかるので、このようなネットワーク構成にしています。
+    ROSA の PrivateLink クラスターを Private Subnet に作成すれば、外部に公開される IPはないので、Egress トラフィックだけが Public Subnet を追加する事になります。
+
+
+# ROSA HCP Cluster のインストール
+
+
 
 # 踏み台用 VPC / Transit Gateway と踏み台のデプロイ
 
