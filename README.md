@@ -201,6 +201,25 @@ Route53の画面で `openshiftapps.com`  というドメイン名を含む `プ�
 これで、Bastion 側から ROSAのドメインの名前解決ができるようになります。
 設定後、名前解決ができるようになるまで、1分以上かかるかもしれません。
 
+## VPC Endpoint のアクセス許可
+
+「VPC ダッシュボード」 ＝＞「エンドポイント」の画面に行きます。
+`Interface` タイプの "VPC エンドポイントID" をクリックします。
+
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/84730fab-fe97-4614-a4be-7ee57325f2f6)
+
+「セキュリティグループ」タブから「グループＩＤ」をクリックします。
+
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/1fd34106-89d0-4a7a-a7ae-72de99384d7a)
+
+「セキュリティグループ名」が `default` では**無い**長い名前になっているもので、「VPC ID」が ROSA HCP を作成した VPC IDのものを選択し、「インバウンドルール」を眺めて、ポート `6443` / ソース `10.0.0.0/16` というエントリーを確認します。
+
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/021b0f0c-6bf2-4d71-a43b-affe5e7e3e39)
+
+ポート `6443` / ソース `10.0.0.0/16`と同じフォーマットで、ポート `6443` / ソース `10.11.0.0/16` というエントリーを作成します。
+
+
+
 # SSH Port foward の設定と Bastion へのログイン
 
 ## CLI ログイン環境のセットアップ
