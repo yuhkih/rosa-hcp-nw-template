@@ -160,41 +160,41 @@ echo $REGION
 
 以下の CloudFormation のテンプレートを使用してスタックを作成します。
 
-    Single AZ の　ROSA をデプロイした場合
+Single AZ の　ROSA をデプロイした場合
 
-   ```
-    bastion-vpc-and-transit-gw-sz.yaml
-    ```
+```
+bastion-vpc-and-transit-gw-sz.yaml
+```
 
-    Multi AZ の ROSA をデプロイした場合
+Multi AZ の ROSA をデプロイした場合
 
-    ```
-    bastion-vpc-and-transit-gw-mz.yaml
-    ```
+```
+bastion-vpc-and-transit-gw-mz.yaml
+```
 
-   AWS CLI から Single AZ 用の bastion VPC を作成するために CloudFormation を実行する場合は以下のようになります。
+AWS CLI から Single AZ 用の bastion VPC を作成するために CloudFormation を実行する場合は以下のようになります。
    
-   ```
-   aws cloudformation deploy --template-file bastion-vpc-and-transit-gw-sz.yaml --stack-name mybastion
-   ```
+```
+aws cloudformation deploy --template-file bastion-vpc-and-transit-gw-sz.yaml --stack-name mybastion
+```
 
-   この CloudFormation Template によって、 Bastion 用の VPCとTransit Gateway が構成されます。
+この CloudFormation Template によって、 Bastion 用の VPCとTransit Gateway が構成されます。
 
-    Single AZ 構成の場合は以下の図の左側の VPC と踏み台となる 2つの EC2、ROSA VPC と接続するための Transit Gatway が環境が構築されます。
+Single AZ 構成の場合は以下の図の左側の VPC と踏み台となる 2つの EC2、ROSA VPC と接続するための Transit Gatway が環境が構築されます。
 
-    ![Single AZ Network + Bastion ](/images/bastion-vpc-transit-gateway.png) 
+![Single AZ Network + Bastion ](/images/bastion-vpc-transit-gateway.png) 
 
 
 ## Route 53 の設定の編集
 
 ROSA の VPC の Route 53 の 設定を編集します。
 
-    このままでは、踏み台用に作成した VPC から ROSA で使用されているプライベートなドメインを解決できないため、ROSA の プライベートドメインの Zone の設定を編集して、新しく作成した踏み台用の VPCを信頼するように設定します。
+このままでは、踏み台用に作成した VPC から ROSA で使用されているプライベートなドメインを解決できないため、ROSA の プライベートドメインの Zone の設定を編集して、新しく作成した踏み台用の VPCを信頼するように設定します。
 
-    Route53の画面で`プライベート`の Zone を探します。
-    ![Route53 設定1](./images/route53-zone1.png "プライベートゾーン")
+Route53の画面で`プライベート`の Zone を探します。
+![Route53 設定1](./images/route53-zone1.png "プライベートゾーン")
 
-    `プライベート`Zone の設定の`ホストゾーンに関連付けるVPC`で、bastion VPＣを指定します。
+ `プライベート`Zone の設定の`ホストゾーンに関連付けるVPC`で、bastion VPＣを指定します。
     ![Route53 設定2](./images/route53-zone2.png "プライベートゾーン")
     これで、Bastion 側から ROSAのドメインの名前解決ができるようになります。
     設定後、名前解決ができるようになるまで、1分以上かかるかもしれません。
