@@ -191,15 +191,14 @@ ROSA の VPC の Route 53 の 設定を編集します。
 
 このままでは、踏み台用に作成した VPC から ROSA で使用されているプライベートなドメインを解決できないため、ROSA の プライベートドメインの Zone の設定を編集して、新しく作成した踏み台用の VPCを信頼するように設定します。
 
-Route53の画面で`プライベート`の Zone を探します。
-![Route53 設定1](./images/route53-zone1.png "プライベートゾーン")
+Route53の画面で `openshiftapps.com`  というドメイン名を含む `プライベート`の Zone を探します。
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/4b94739c-447c-4423-ba17-112d462c6781)
 
- `プライベート`Zone の設定の`ホストゾーンに関連付けるVPC`で、bastion VPＣを指定します。
-    ![Route53 設定2](./images/route53-zone2.png "プライベートゾーン")
-    これで、Bastion 側から ROSAのドメインの名前解決ができるようになります。
-    設定後、名前解決ができるようになるまで、1分以上かかるかもしれません。
+`ホストゾーンを編集` => `プライベート`Zone の設定の`ホストゾーンに関連付けるVPC` => `VPCを追加` で、bastion VPC を指定します。
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/5ca7b390-4313-4689-b926-d5af8b6c579c)
+これで、Bastion 側から ROSAのドメインの名前解決ができるようになります。
+設定後、名前解決ができるようになるまで、1分以上かかるかもしれません。
 
-    (サポート内に収める方法としては、必要なドメイン名とホスト名を bastion の /etc/hosts に登録しておく方法もあります。その場合は、IPアドレスが変わる可能性があるので定期的にメンテする必要が出てくるかもしれません)
 # SSH Port foward の設定と Bastion へのログイン
 
 ## CLI ログイン環境のセットアップ
