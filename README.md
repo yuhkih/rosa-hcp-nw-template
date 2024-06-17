@@ -239,7 +239,7 @@ SSHの鍵は CloudFormation で Bastionがデプロイされた時に AWS 上に
     port-forward.sh 1
     ```
 
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/fa03eae9-444f-45d7-b997-56cc69453527)
+    ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/fa03eae9-444f-45d7-b997-56cc69453527)
 
 
     ログアウトせずに、接続を保ったままにします。
@@ -251,7 +251,7 @@ SSHの鍵は CloudFormation で Bastionがデプロイされた時に AWS 上に
     port-forward.sh 2
     ```
 
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/09a541b4-3f87-4183-871c-7cc9e5cd2c20)
+    ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/09a541b4-3f87-4183-871c-7cc9e5cd2c20)
 
 
     この端末から oc コマンドなどが実行できるはずです。`oc version` が実行できるか確認してみて下さい。
@@ -302,5 +302,5 @@ SSHの鍵は CloudFormation で Bastionがデプロイされた時に AWS 上に
     - localhost の 10044 ポート を Proxy 先として指定します。
     - Proxy DNS when using SOCKS v5 にチェックを入れます。
 
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/2b62003b-dc86-4a35-a7b8-04d36ccee625)
+    ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/2b62003b-dc86-4a35-a7b8-04d36ccee625)
 
