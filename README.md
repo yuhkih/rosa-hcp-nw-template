@@ -47,7 +47,7 @@ RHEL系 (Amazon Linux等) の場合は、
 自分の端末上で以下のコマンドを実行して、このレポジトリーをローカルにダウンロードします。
 
 ```
-git clone https://github.com/yuhkih/rosa-nw-template.git
+git clone https://github.com/yuhkih/rosa-hcp-nw-template.git
 cd rosa-nw-template
 ```
 
