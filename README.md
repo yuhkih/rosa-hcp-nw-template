@@ -20,7 +20,10 @@ $
 ```
 
 ## oc コマンド / rosa コマンドのインストール
-`oc` コマンドや、`rosa` コマンドが必要です。`rosa` コマンドは、[こちらか](https://console.redhat.com/openshift/downloads)、もしくは[こちから](https://mirror.openshift.com/pub/openshift-v4/clients/rosa/latest/)ダウンロード可能です。
+`oc` コマンドや、`rosa` コマンドが必要です。
+
+`rosa` コマンドは、[こちらか](https://console.redhat.com/openshift/downloads)、もしくは[こちから](https://mirror.openshift.com/pub/openshift-v4/clients/rosa/latest/)ダウンロード可能です。
+
 `oc` コマンドは、`rosa` コマンドを使って以下のコマンドラインでインストール可能です。
 
 ```
