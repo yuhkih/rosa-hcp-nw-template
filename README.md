@@ -307,3 +307,10 @@ SSHの鍵は CloudFormation で Bastionがデプロイされた時に AWS 上に
 
     ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/2b62003b-dc86-4a35-a7b8-04d36ccee625)
 
+# AWS Firewall Log の確認
+
+この環境では、アウトバウンドのトラフィックは、AWS Network Firewall を通過するように構成されています。
+
+Firewall のログは、「CloudWatch」の「ロググループ」から確認できます。
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/6fcc272c-a8ce-4277-8ab7-ee852b1682a8)
+
