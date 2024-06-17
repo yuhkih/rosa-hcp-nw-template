@@ -19,15 +19,14 @@ Default output format [None]:
 $ 
 ```
 
-ROSA コマンドは、[こちらか](https://console.redhat.com/openshift/downloads)、もしくは[こちから](https://mirror.openshift.com/pub/openshift-v4/clients/rosa/latest/)ダウンロード可能です。
-Linux の場合は以下でインストール可能です。
+`oc` コマンドや、`rosa` コマンドが必要です。`rosa` コマンドは、[こちらか](https://console.redhat.com/openshift/downloads)、もしくは[こちから](https://mirror.openshift.com/pub/openshift-v4/clients/rosa/latest/)ダウンロード可能です。
+`oc` コマンドは、`rosa` コマンドを使って以下のコマンドラインでインストール可能です。
 
 ```
-curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/rosa/latest/rosa-linux.tar.gz
-tar -zxf rosa-linux.tar.gz 
-sudo mv ./rosa /usr/local/bin/
+rosa download oc
 ```
 
+Linux の場合は、[こちら](https://gist.github.com/yuhkih/d9760d16084aa79812428e64ce0ec5d9) に `oc` コマンドと `rosa` コマンドをインストールするシェルを書きました。
 
 jq コマンドは Ubuntu の場合は、
 ```
