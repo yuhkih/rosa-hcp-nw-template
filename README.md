@@ -64,7 +64,7 @@ cd rosa-hcp-nw-template
 
 # ROSA 用のNetwork のデプロイ
 
-1. 以下の CloudFormation のテンプレートを使用して、ROSA をインストールするためのネットワークを作成します。
+以下の CloudFormation のテンプレートを使用して、ROSA をインストールするためのネットワークを作成します。
 
     ROSA の Private Cluser (with PrivatreLink) 構成では、ユーザーが自分で必要なネットワークを AWS 内にデプロイした後、ROSA をインストールする必要があります。
 
