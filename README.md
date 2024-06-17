@@ -156,7 +156,9 @@ echo $REGION
 # 踏み台用 VPC / Transit Gateway と踏み台のデプロイ
 
 
-1. 以下の CloudFormation のテンプレートを使用してスタックを作成します。
+## CloudFormation テンプレートの実行 
+
+以下の CloudFormation のテンプレートを使用してスタックを作成します。
 
     Single AZ の　ROSA をデプロイした場合
 
@@ -182,7 +184,10 @@ echo $REGION
 
     ![Single AZ Network + Bastion ](/images/bastion-vpc-transit-gateway.png) 
 
-1. ROSA の VPC の Route 53 の 設定を編集します。
+
+## Route 53 の設定の編集
+
+ROSA の VPC の Route 53 の 設定を編集します。
 
     このままでは、踏み台用に作成した VPC から ROSA で使用されているプライベートなドメインを解決できないため、ROSA の プライベートドメインの Zone の設定を編集して、新しく作成した踏み台用の VPCを信頼するように設定します。
 
