@@ -304,8 +304,7 @@ SSHの鍵は CloudFormation で Bastionがデプロイされた時に AWS 上に
 
     - localhost の 10044 ポート を Proxy 先として指定します。
     - Proxy DNS when using SOCKS v5 にチェックを入れます。
-
-    ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/2b62003b-dc86-4a35-a7b8-04d36ccee625)
+    ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/bbacf990-89a1-4c24-b213-5be1dddf1055)
 
 # AWS Firewall Log の確認
 
