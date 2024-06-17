@@ -62,7 +62,7 @@ cd rosa-hcp-nw-template
 
 作業に必要な CloudFormation の Template や、sh 等は `rosa-nw-template` ディレクトリに含まれています。
 
-# ROSA/RHOAM 用のNetwork のデプロイ
+# ROSA 用のNetwork のデプロイ
 
 1. 以下の CloudFormation のテンプレートを使用して、ROSA をインストールするためのネットワークを作成します。
 
@@ -97,6 +97,60 @@ cd rosa-hcp-nw-template
 
 
 # ROSA HCP Cluster のインストール
+
+
+
+
+
+
+    
+
+
+## Subnetid の取得
+1. CloudFormation の画面で、作成したスタックを選択し「出力」のタブに行くと以下のように Private Subnet の ID が表示されているはずです。PrivateLink を使ったインストールには、インストール時にこの IDの値を聞かれるのでメモしておきます。(Single AZ の Network を CloudFormation でデプロイした場合は、PrivateSubnetID1 のみ存在します。)
+
+```
+PrivateSubnetID1 subnet-098e7998da1721a95 Private Subnet ID1
+PrivateSubnetID2 subnet-047a7fa3fb3e1307e Private Subnet ID2
+PrivateSubnetID3 subnet-0c73a76a9757a2174 Private Subnet ID3
+```
+
+サブネットIDを変数としてセットします。
+
+もしくは、jq コマンドをインストールしている場合は、AWS CLI で以下のように取得できます。
+
+・Multi AZ 環境の場合 ( Private Subnet は 3つあります)
+
+```
+# PrivateSubnetID1
+aws ec2 describe-subnets | jq -r '.Subnets[] | [ .CidrBlock, .SubnetId, .AvailabilityZone, .Tags[].Value ] | @csv' | grep Private-Subnet1 | awk -F'[,]' '{print $2}' | sed 's/"//g'
+# PrivateSubnetID2
+aws ec2 describe-subnets | jq -r '.Subnets[] | [ .CidrBlock, .SubnetId, .AvailabilityZone, .Tags[].Value ] | @csv' | grep Private-Subnet2 | awk -F'[,]' '{print $2}' | sed 's/"//g'
+# PrivateSubnetID3
+aws ec2 describe-subnets | jq -r '.Subnets[] | [ .CidrBlock, .SubnetId, .AvailabilityZone, .Tags[].Value ] | @csv' | grep Private-Subnet3 | awk -F'[,]' '{print $2}' | sed 's/"//g'
+```
+
+・Single AZ の場合 ( Private Subnet は 1つです)
+
+```
+SUBNET_IDS=`aws ec2 describe-subnets | jq -r '.Subnets[] | [ .CidrBlock, .SubnetId, .AvailabilityZone, .Tags[].Value ] | @csv' | grep Private-Subnet1 | awk -F'[,]' '{print $2}' | sed 's/"//g'`
+```
+
+## 変数の準備
+
+Cluster名の変数をセットします。
+
+```
+export CLUSTER_NAME=myhcpcluster
+```
+
+AWS Region 名の変数をセットします。
+
+```
+export REGION=ap-northeast-1
+```
+
+## HCP Cluster の install
 
 [こちらの](https://yuhkih.github.io/mcs-docs/docs/rosa-hcp/create-delete/rosa-hcp-enable/)の 3～5の手順を実行します。
 
