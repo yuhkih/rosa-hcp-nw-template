@@ -1,8 +1,9 @@
 # はじめに
 
-ROSA HCP でも、ROSA Classic とネットワークの構成は同じですが、HCP の Controlplane にアクセスするために、ユーザーの VPC 内に作られる Endpoint に対して、別の VPC からアクセスする場合に、そのネットワークからのアクセス許可を与える必要があります。
+このリポジトリーの CloudFromation を使うと、AWS VPC 環境と、AWS Network Firewall が構成された状態でデプロイされます。
 
-その部分を追加で書いた手順を書くついでに、全体を見直したドキュメントを作る事にしました。
+デプロイされた環境を使う事で、ROSA HCP Cluster を Private Cluster として作成した時に、どのような通信が Egress として発生するかが確認できます。
+
 
 # 作業環境のセットアップ
 
