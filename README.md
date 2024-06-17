@@ -57,7 +57,7 @@ RHEL系 (Amazon Linux等) の場合は、
 
 ```
 git clone https://github.com/yuhkih/rosa-hcp-nw-template.git
-cd rosa-nw-template
+cd rosa-hcp-nw-template
 ```
 
 作業に必要な CloudFormation の Template や、sh 等は `rosa-nw-template` ディレクトリに含まれています。
