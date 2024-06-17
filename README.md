@@ -66,34 +66,36 @@ cd rosa-hcp-nw-template
 
 以下の CloudFormation のテンプレートを使用して、ROSA をインストールするためのネットワークを作成します。
 
-    ROSA の Private Cluser (with PrivatreLink) 構成では、ユーザーが自分で必要なネットワークを AWS 内にデプロイした後、ROSA をインストールする必要があります。
+ROSA の Private Cluser (with PrivatreLink) 構成では、ユーザーが自分で必要なネットワークを AWS 内にデプロイした後、ROSA をインストールする必要があります。
 
-    Single AZ 環境の場合は、
-    ```
-     rosa-PRV_NAT_FW-sz.yaml
-    ```
+Single AZ 環境の場合は、
+
+```
+rosa-PRV_NAT_FW-sz.yaml
+```
     
-    Multi AZ 環境の場合は
+Multi AZ 環境の場合は
 
-    ```
-    rosa-PRV_NAT_FW-mz.yaml
-    ```
-    を使用して、デプロイ完了まで待ちます。
+```
+rosa-PRV_NAT_FW-mz.yaml
+```
 
-    CLI から Single AZ 用の環境を CloudFormation を使って実行する場合は以下のようになります。
+を使用して、デプロイ完了まで待ちます。
 
-    ```
-    aws cloudformation deploy --template-file  rosa-PRV_NAT_FW-sz.yaml --stack-name myROSANetwork --capabilities CAPABILITY_NAMED_IAM
-    ```
+CLI から Single AZ 用の環境を CloudFormation を使って実行する場合は以下のようになります。
 
-    とは言え、実行ログなどは、AWS Console 上から確認した方がわかりやすいかもしれません。
+```
+aws cloudformation deploy --template-file  rosa-PRV_NAT_FW-sz.yaml --stack-name myROSANetwork --capabilities CAPABILITY_NAMED_IAM
+```
 
-    これをデプロイする事で、Single AZ の場合は、以下のような環境が作成されます。
+とは言え、実行ログなどは、AWS Console 上から確認した方がわかりやすいかもしれません。
 
-    ![Single AZ Network](/images/single-az-network.png)
+これをデプロイする事で、Single AZ の場合は、以下のような環境が作成されます。
 
-    本来であれば、この VPC には、Private Subnet だけを置いて、Egress 用の VPC を分割したい所ですが、そうなると環境作成の時間もコストもかかるので、このようなネットワーク構成にしています。
-    ROSA の PrivateLink クラスターを Private Subnet に作成すれば、外部に公開される IPはないので、Egress トラフィックだけが Public Subnet を追加する事になります。
+![Single AZ Network](/images/single-az-network.png)
+
+本来であれば、この VPC には、Private Subnet だけを置いて、Egress 用の VPC を分割したい所ですが、そうなると環境作成の時間もコストもかかるので、このようなネットワーク構成にしています。
+ROSA の PrivateLink クラスターを Private Subnet に作成すれば、外部に公開される IPはないので、Egress トラフィックだけが Public Subnet を追加する事になります。
 
 ## Subnetid の変数へのセット
 
