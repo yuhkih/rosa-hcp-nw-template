@@ -194,8 +194,9 @@ ROSA の VPC の Route 53 の 設定を編集します。
 Route53の画面で `openshiftapps.com`  というドメイン名を含む `プライベート`の Zone を探します。
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/4b94739c-447c-4423-ba17-112d462c6781)
 
-`ホストゾーンを編集` => `プライベート`Zone の設定の`ホストゾーンに関連付けるVPC` => `VPCを追加` で、bastion VPC を指定します。
+「ホストゾーンを編集」 => 「プライベートZone の設定」の「ホストゾーンに関連付けるVPC」 => 「VPCを追加」 で、bastion VPC を指定します。
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/5ca7b390-4313-4689-b926-d5af8b6c579c)
+
 これで、Bastion 側から ROSAのドメインの名前解決ができるようになります。
 設定後、名前解決ができるようになるまで、1分以上かかるかもしれません。
 
