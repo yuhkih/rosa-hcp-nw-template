@@ -130,19 +130,24 @@ AWS Region 名の変数をセットします。
 export REGION=ap-northeast-1
 ```
 
-## HCP Cluster の install
+## ROSA HCP Cluster の install
 
 以下の変数がセットされている事を今一度、確認します。
+
 
 ```
 echo $SUBNET_IDS
 ```
+
 ```
 echo $CLUSTER_NAME
 ```
+
 ```
 echo $REGION
 ```
+
+上記の変数のセットが確認できたら、以下の手順書に進み Private Cluster をインストールします。
 
 [こちらの](https://yuhkih.github.io/mcs-docs/docs/rosa-hcp/create-delete/rosa-hcp-enable/)の 3～5の手順を実行します。
 
