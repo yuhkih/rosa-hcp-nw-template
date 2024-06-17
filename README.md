@@ -204,7 +204,7 @@ Route53の画面で `openshiftapps.com`  というドメイン名を含む `プ�
 ## VPC Endpoint のアクセス許可
 
 「VPC ダッシュボード」 ＝＞「エンドポイント」の画面に行きます。
-`Interface` タイプの "VPC エンドポイントID" をクリックします。
+`Interface` タイプの 「VPC エンドポイントID」 をクリックします。
 
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/84730fab-fe97-4614-a4be-7ee57325f2f6)
 
@@ -212,11 +212,11 @@ Route53の画面で `openshiftapps.com`  というドメイン名を含む `プ�
 
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/1fd34106-89d0-4a7a-a7ae-72de99384d7a)
 
-「セキュリティグループ名」が `default` では**無い**長い名前になっているもので、「VPC ID」が ROSA HCP を作成した VPC IDのものを選択し、「インバウンドルール」を眺めて、ポート `6443` / ソース `10.0.0.0/16` というエントリーを確認します。
+「セキュリティグループ名」が `default` では**無い**長い名前になっているもので、「VPC ID」が ROSA HCP を作成した VPC IDのものを選択し、「インバウンドルール」タブをクリックします。
 
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/021b0f0c-6bf2-4d71-a43b-affe5e7e3e39)
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/55e294aa-9f91-477b-9fa8-cbf6ecc0dc67)
 
-ポート `6443` / ソース `10.0.0.0/16`と同じフォーマットで、ポート `6443` / ソース `10.11.0.0/16` というエントリーを TCP用とUDP用で作成します。
+「インバウンドルール」として、ポート `6443` / ソース `10.11.0.0/16` (bastion 用の VPC の CIDR) というエントリーを TCP用とUDP用でそれぞれ作成します。
 
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/9259b615-c500-4bc7-9fea-ff7be168e687)
 
