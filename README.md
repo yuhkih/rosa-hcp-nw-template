@@ -216,6 +216,9 @@ Route53の画面で `openshiftapps.com`  というドメイン名を含む `プ�
 
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/55e294aa-9f91-477b-9fa8-cbf6ecc0dc67)
 
+「インバウンドルール」として、プロトコル `HTTPS` / ソース `10.11.0.0/16` (bastion 用の VPC の CIDR) というエントリーを作成します。
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/2eb11780-10f4-400a-91ce-52661b57805c)
+
 「インバウンドルール」として、ポート `6443` / ソース `10.11.0.0/16` (bastion 用の VPC の CIDR) というエントリーを `TCP`用と`UDP`用でそれぞれ作成します。
 
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/d85b4fd5-4cff-4d0b-afdc-5faefd4e6f12)
