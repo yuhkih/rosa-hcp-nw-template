@@ -95,17 +95,6 @@ cd rosa-hcp-nw-template
     本来であれば、この VPC には、Private Subnet だけを置いて、Egress 用の VPC を分割したい所ですが、そうなると環境作成の時間もコストもかかるので、このようなネットワーク構成にしています。
     ROSA の PrivateLink クラスターを Private Subnet に作成すれば、外部に公開される IPはないので、Egress トラフィックだけが Public Subnet を追加する事になります。
 
-
-# ROSA HCP Cluster のインストール
-
-
-
-
-
-
-    
-
-
 ## Subnetid の変数へのセット
 
 サブネットIDを変数にセットします。
@@ -142,6 +131,18 @@ export REGION=ap-northeast-1
 ```
 
 ## HCP Cluster の install
+
+以下の変数がセットされている事を今一度、確認します。
+
+```
+echo $SUBNET_IDS
+```
+```
+echo $CLUSTER_NAME
+```
+```
+echo $REGION
+```
 
 [こちらの](https://yuhkih.github.io/mcs-docs/docs/rosa-hcp/create-delete/rosa-hcp-enable/)の 3～5の手順を実行します。
 
