@@ -311,6 +311,12 @@ SSHの鍵は CloudFormation で Bastionがデプロイされた時に AWS 上に
 
 この環境では、アウトバウンドのトラフィックは、AWS Network Firewall を通過するように構成されています。
 
+「VPC」=> 「Network Firewall: ファイアウォールポリシー」=> 「singleaz-InspectionFirewall-Policy」のような名前の `Firewall Policy` が設定されていて、以下のような 「ステートフルルールグループ」があらかじめ作成されています。
+
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/a0293704-4ff5-4cbe-86b1-ba08c959d7b5)
+
+上記のルールを編集しながら、アウトバンドトラフィックの確認ができます。
+
 Firewall のログは、「CloudWatch」の「ロググループ」から確認できます。
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/6fcc272c-a8ce-4277-8ab7-ee852b1682a8)
 
