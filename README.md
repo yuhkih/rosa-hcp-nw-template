@@ -75,7 +75,7 @@ Single AZ 環境の場合は、
 rosa-PRV_NAT_FW-sz.yaml
 ```
     
-Multi AZ 環境の場合は
+Multi AZ 環境の場合は (Multi AZ 環境の CloudFormation の yaml は Workload の都合上凍結中) 
 
 ```
 rosa-PRV_NAT_FW-mz.yaml
