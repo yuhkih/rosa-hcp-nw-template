@@ -204,7 +204,7 @@ Route53の画面で `openshiftapps.com`  というドメイン名を含む `プ�
 ## VPC Endpoint のアクセス許可
 
 「VPC ダッシュボード」 ＝＞「エンドポイント」の画面に行きます。
-`Interface` タイプの 「VPC エンドポイントID」 をクリックします。
+`Interface` タイプの 「VPC エンドポイントID」 をクリックします。(Gatewayタイプは、AWS Firewall の vpce でこの環境独自のものです)
 
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/84730fab-fe97-4614-a4be-7ee57325f2f6)
 
