@@ -344,5 +344,5 @@ aws cloudformation delete-stack --stack-name mybastion
 ROSA HCP VPC の削除
 
 ```
-aws cloudformation delete-stack --stack-name mybastion
+aws cloudformation delete-stack --stack-name myROSANetwork
 ```
