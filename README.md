@@ -97,15 +97,6 @@ ROSA の PrivateLink クラスターを Private Subnet に作成した場合、L
 
 jq コマンドをインストールしている場合は、AWS CLI で以下のように取得できます。
 
-・Multi AZ 環境の場合 ( Private Subnet は 3つあります)
-
-```
-export PrivateSubnetID1=`aws ec2 describe-subnets | jq -r '.Subnets[] | [ .CidrBlock, .SubnetId, .AvailabilityZone, .Tags[].Value ] | @csv' | grep Private-Subnet1 | awk -F'[,]' '{print $2}' | sed 's/"//g'`
-export PrivateSubnetID2=`aws ec2 describe-subnets | jq -r '.Subnets[] | [ .CidrBlock, .SubnetId, .AvailabilityZone, .Tags[].Value ] | @csv' | grep Private-Subnet2 | awk -F'[,]' '{print $2}' | sed 's/"//g'`
-export PrivateSubnetID3=`aws ec2 describe-subnets | jq -r '.Subnets[] | [ .CidrBlock, .SubnetId, .AvailabilityZone, .Tags[].Value ] | @csv' | grep Private-Subnet3 | awk -F'[,]' '{print $2}' | sed 's/"//g'`
-export SUBNET_IDS="$PrivateSubnetID1,$PrivateSubnetID2,$PrivateSubnetID3"
-```
-
 ・Single AZ の場合 ( Private Subnet は 1つです)
 
 ```
