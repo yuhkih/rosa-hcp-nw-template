@@ -183,7 +183,7 @@ aws cloudformation deploy --template-file bastion-vpc-and-transit-gw-sz.yaml --s
 Single AZ 構成の場合は以下の図の左側の VPC と踏み台となる 2つの EC2、ROSA VPC と接続するための Transit Gatway が環境が構築されます。
 左側に設置された VPC は、踏み台を使って、隣の Cluster のある VPCを覗くための VPCで、Cluster のある VPC からの egress トラフィックはこの VPCを通過しません。
 
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/851409d3-fc4a-48d5-91be-7dad63f3898d)
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/23bd3cb3-268f-49d6-a918-8660e6e598c4)
 
 ## Route 53 の設定の編集
 
