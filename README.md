@@ -317,11 +317,32 @@ Firewall のログは、「CloudWatch」の「ロググループ」から確認�
 # 環境の削除
 
 **ROSA HCP Cluster の削除**
+
+ROSA HCP Cluster の削除
+
+```
 rosa delete cluster -c $CLUSTER_NAME
+```
+
+Operator Role と OIDC Config の削除 
+
+パラメーターは、`rosa delete cluster` を実行した時に表示されます。
+
+```
 rosa delete operator-roles --prefix <prefix> -m auto -y
 rosa delete oidc-provider --oidc-config-id <oidc config id> -m auto -y
+```
 
 **CloudFormation Stack の削除**
-aws cloudformation delete-stack --stack-name mybastion
-aws cloudformation delete-stack --stack-name mybastion
 
+bastion VPC の削除
+
+```
+aws cloudformation delete-stack --stack-name mybastion
+```
+
+ROSA HCP VPC の削除
+
+```
+aws cloudformation delete-stack --stack-name mybastion
+```
