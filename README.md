@@ -69,29 +69,23 @@ cd rosa-hcp-nw-template
 
 ROSA の Private Cluser (with PrivatreLink) 構成では、ユーザーが自分で必要なネットワークを AWS 内にデプロイした後、ROSA をインストールする必要があります。
 
-Single AZ 環境の場合は、
+Single AZ の実験環境を作成します。
 
 ```
 rosa-PRV_NAT_FW-sz.yaml
 ```
-    
-Multi AZ 環境の場合は (Multi AZ 環境の CloudFormation の yaml は Workload の都合上凍結中) 
 
-```
-rosa-PRV_NAT_FW-mz.yaml
-```
+を使用して、デプロイ完了まで待ちます。AWS GUIから上記の YAML をインポート可能です。
 
-を使用して、デプロイ完了まで待ちます。
-
-CLI から Single AZ 用の環境を CloudFormation を使って実行する場合は以下のようになります。
+CLI から CloudFormation を使って実行する場合は以下のようになります。
 
 ```
 aws cloudformation deploy --template-file  rosa-PRV_NAT_FW-sz.yaml --stack-name myROSANetwork --capabilities CAPABILITY_NAMED_IAM
 ```
 
-とは言え、実行ログなどは、AWS Console 上から確認した方がわかりやすいかもしれません。
+実行ログなどは、AWS Console 上から確認した方がわかりやすいかもしれません。
 
-これをデプロイする事で、Single AZ の場合は、以下のような環境が作成されます。
+これをデプロイする事で、以下のような環境が作成されます。
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/2b4805a4-a613-4a5c-aef3-d0b08f210677)
 
 本来であれば、この VPC には、Private Subnet だけを置いて、Egress 用の VPC を分割した方が理解しやすい所ですが、そうなると環境作成の時間もコストもかかるので、このようなネットワーク構成にしています。
@@ -160,19 +154,11 @@ echo $REGION
 
 以下の CloudFormation のテンプレートを使用してスタックを作成します。
 
-Single AZ の　ROSA をデプロイした場合
-
 ```
 bastion-vpc-and-transit-gw-sz.yaml
 ```
 
-Multi AZ の ROSA をデプロイした場合
-
-```
-bastion-vpc-and-transit-gw-mz.yaml
-```
-
-AWS CLI から Single AZ 用の bastion VPC を作成するために CloudFormation を実行する場合は以下のようになります。
+AWS CLI から bastion VPC を作成するために CloudFormation を実行する場合は以下のようになります。
    
 ```
 aws cloudformation deploy --template-file bastion-vpc-and-transit-gw-sz.yaml --stack-name mybastion
