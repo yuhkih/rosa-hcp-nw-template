@@ -94,8 +94,8 @@ aws cloudformation deploy --template-file  rosa-PRV_NAT_FW-sz.yaml --stack-name 
 これをデプロイする事で、Single AZ の場合は、以下のような環境が作成されます。
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/2b4805a4-a613-4a5c-aef3-d0b08f210677)
 
-本来であれば、この VPC には、Private Subnet だけを置いて、Egress 用の VPC を分割したい所ですが、そうなると環境作成の時間もコストもかかるので、このようなネットワーク構成にしています。
-ROSA の PrivateLink クラスターを Private Subnet に作成すれば、外部に公開される IPはないので、Egress トラフィックだけが Public Subnet を追加する事になります。
+本来であれば、この VPC には、Private Subnet だけを置いて、Egress 用の VPC を分割した方が理解しやすい所ですが、そうなると環境作成の時間もコストもかかるので、このようなネットワーク構成にしています。
+ROSA の PrivateLink クラスターを Private Subnet に作成した場合、Load Banalcer の持つ IP も Private の IP になり、外からトラフィックが入ってくる事はありません。
 
 ## Subnetid の変数へのセット
 
