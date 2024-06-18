@@ -313,3 +313,15 @@ SSHの鍵は CloudFormation で Bastionがデプロイされた時に AWS 上に
 Firewall のログは、「CloudWatch」の「ロググループ」から確認できます。
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/6fcc272c-a8ce-4277-8ab7-ee852b1682a8)
 
+
+# 環境の削除
+
+**ROSA HCP Cluster の削除**
+rosa delete cluster -c $CLUSTER_NAME
+rosa delete operator-roles --prefix <prefix> -m auto -y
+rosa delete oidc-provider --oidc-config-id <oidc config id> -m auto -y
+
+**CloudFormation Stack の削除**
+aws cloudformation delete-stack --stack-name mybastion
+aws cloudformation delete-stack --stack-name mybastion
+
