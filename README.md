@@ -308,6 +308,7 @@ aws cloudformation deploy --template-file bastion-vpc-and-transit-gw-sz.yaml --s
 ```
 
 この CloudFormation を使うと以下の図中の Proxy Server が作成されます。この Proxy Server は HTTP 8888 port で Listen します。ROSAがこの Proxy を使用するには別途 ROSA 側の設定が必要です。
+HTTP/HTTPSの Egress アクセスの許可は、HTTP Proxy の proxy.conf で行えるので、AWS Firewall を使う必要はありません。一方で、AWS Firewall では、HTTP Proxy を通過しない Egress トラフィックを検知する事ができます。
 
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/fed61bf5-2a58-4b95-9f1f-bd906ac47603)
 
