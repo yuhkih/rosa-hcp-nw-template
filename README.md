@@ -140,6 +140,9 @@ echo $REGION
 
 # 踏み台用 VPC / Transit Gateway と踏み台のデプロイ
 
+当初は SSM を有効にした EC2 インスタンスを ROSA VPC 内にデプロイして踏み台としていたのですが、AWS Console を通した操作だとどうも操作性がよくないため、通常のターミナルアクセスができるように別の VPCに踏み台をデプロイしています。
+
+また、これによりブラウザから Private Network 内の ROSAクラスターにアクセスできるようになります。
 
 ## CloudFormation テンプレートの実行 
 
@@ -289,6 +292,16 @@ SSHの鍵は CloudFormation で Bastionがデプロイされた時に AWS 上に
 
 Firewall のログは、「CloudWatch」の「ロググループ」から確認できます。
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/6fcc272c-a8ce-4277-8ab7-ee852b1682a8)
+
+
+# HTTP Proxy を設置してみる
+
+OpenShift では Cluster Wide Proxy と呼ばれていますが、OpenShift Cluster からの Egress を HTTP Proxy に飛ばす機能があります。
+
+以下の yaml を適用する事で ROSA Cluster と同じ Private Network に HTTP Proxy をデプロイします。
+
+この HTTP Proxy は、SSM で AWS Console 上からアクセスできます。
+
 
 
 # 環境の削除
