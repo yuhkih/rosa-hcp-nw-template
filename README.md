@@ -318,8 +318,20 @@ bastion VPC の削除
 aws cloudformation delete-stack --stack-name mybastion
 ```
 
+bastion VPC の削除待ち
+
+```
+aws cloudformation wait stack-delete-complete --stack-name mybastion
+```
+  
 ROSA HCP VPC の削除
 
 ```
 aws cloudformation delete-stack --stack-name myROSANetwork
+```
+
+ROSA HCP VPC の削除待ち
+
+```
+aws cloudformation wait stack-delete-complete --stack-name myROSANetwork 
 ```
