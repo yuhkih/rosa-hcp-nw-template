@@ -297,11 +297,19 @@ Firewall のログは、「CloudWatch」の「ロググループ」から確認�
 # HTTP Proxy を設置してみる
 
 OpenShift では Cluster Wide Proxy と呼ばれていますが、OpenShift Cluster からの Egress を HTTP Proxy に飛ばす機能があります。
-
-以下の yaml を適用する事で ROSA Cluster と同じ Private Network に HTTP Proxy をデプロイします。
+`bastion-vpc-and-transit-gw-sz.yaml` を CloudFormation で適用する事で ROSA Cluster と同じ Private Network に HTTP Proxy をデプロイします。
 
 この HTTP Proxy は、SSM で AWS Console 上からアクセスできます。
 
+CLI の場合は、以下のコマンドを実行します。
+
+```
+aws cloudformation deploy --template-file bastion-vpc-and-transit-gw-sz.yaml --stack-name bastionvpc
+```
+
+この CloudFormation を使うと以下の図中の Proxy Server が作成されます。この Proxy Server は HTTP 8888 port で Listen します。
+
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/fed61bf5-2a58-4b95-9f1f-bd906ac47603)
 
 
 # 環境の削除
