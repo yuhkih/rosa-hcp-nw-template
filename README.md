@@ -248,8 +248,7 @@ Default の状態では、Security Group の設定により、Cluster のある 
 
 
 「セキュリティグループ」タブから「グループＩＤ」をクリックします。
-
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/1fd34106-89d0-4a7a-a7ae-72de99384d7a)
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/00d96a8a-06fb-4e2a-8e0f-f22f8d77c042)
 
 「セキュリティグループ名」が `default` では**無い**長い名前になっているもので、「VPC ID」が ROSA HCP を作成した VPC IDのものを選択し、「インバウンドルール」タブをクリックします。
 
