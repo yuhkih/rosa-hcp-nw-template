@@ -254,8 +254,7 @@ Default の状態では、Security Group の設定により、Cluster のある 
 
 
 「セキュリティグループ名」が `default` では**無い**長い名前になっているもので、「VPC ID」が ROSA HCP を作成した VPC IDのものを選択し、「インバウンドルール」タブをクリックします。
-
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/55e294aa-9f91-477b-9fa8-cbf6ecc0dc67)
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/50bf3ee3-836b-46fa-a0bf-0a8d82b746b3)
 
 「インバウンドルール」として、プロトコル `HTTPS` / ソース `10.11.0.0/16` (bastion 用の VPC の CIDR) というエントリーを作成します。
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/2eb11780-10f4-400a-91ce-52661b57805c)
