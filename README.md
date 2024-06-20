@@ -141,13 +141,7 @@ Proxy Server の IPアドレスは以下のコマンドで取得できます。
 export PROXY_IP=`aws ec2 describe-instances | jq '.Reservations[].Instances[] | select(.Tags[].Value =="ssm-bastion-BastionInstance1") | .PrivateIpAddress'| sed 's/"//g'`
 ```
 
-この $PROXY_IP の値を、ROSA Cluster にセットして上げる必要があります。
-
-Cluster 作成時に指定する場合は、以下の例のように指定します。
-
-```
-rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS -i --private-link -y -m auto --http-proxy "http://$PROXY_IP:8888" --https-proxy "http://$PROXY_IP:8888"
-```
+この $PROXY_IP の値は、ROSA Cluster のインストール時に使用します。
 
 
 # ROSA HCP Cluster の install
@@ -169,7 +163,20 @@ echo $REGION
 
 上記の変数のセットが確認できたら、以下の手順書に進み Private Cluster をインストールします。
 
-[こちらの](https://yuhkih.github.io/mcs-docs/docs/rosa-hcp/create-delete/rosa-hcp-enable/)の 3～5の手順を実行します。
+[こちらの](https://yuhkih.github.io/mcs-docs/docs/rosa-hcp/create-delete/rosa-hcp-enable/)の 3～5の1 までの手順を実行します。
+
+ここでは Private Cluster を作成するので、`rosa create cluster` の実行時は手順の 5.1 の以下を実行します。
+
+```
+rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS -i --private-link -y -m auto
+```
+
+HTTP Proxy を設置する場合は、上記の代わりに以下を実行してください。
+
+```
+rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS -i --private-link -y -m auto --http-proxy "http://$PROXY_IP:8888" --https-proxy "http://$PROXY_IP:8888"
+```
+
 
 # 踏み台用 VPC / Transit Gateway と踏み台のデプロイ
 
