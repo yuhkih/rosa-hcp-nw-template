@@ -317,8 +317,7 @@ HTTP/HTTPSの Egress アクセスの許可は、HTTP Proxy の proxy.conf で行
 Proxy Server の IPアドレスは以下のコマンドで取得できます。
 
 ```
-export PROXY_IP=`aws ec2 describe-instances --query 'Reservations[].Instances[].{Name:Tags[?Value=="ssm-bastion-BastionInstance1"]|[0].Value,PrivateIp:PrivateIpAddress}' | grep "PrivateIp" | awk
- -F'[:]' '{print $2}' | sed 's/"//g'`
+export PROXY_IP=`aws ec2 describe-instances | jq '.Reservations[].Instances[] | select(.Tags[].Value =="ssm-bastion-BastionInstance1") | .PrivateIpAddress'| sed 's/"//g'`
 ```
 
 この $PROXY_IP の値を、ROSA Cluster にセットして上げる必要があります。
@@ -326,7 +325,7 @@ export PROXY_IP=`aws ec2 describe-instances --query 'Reservations[].Instances[].
 Cluster 作成時に指定する場合は、以下の例のように指定します。
 
 ```
-rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS -i --private-link -y -m auto --http-proxy http://$PROXY_IP:8888 --https-proxy http://$PROXY_IP:8888
+rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS -i --private-link -y -m auto --http-proxy "http://$PROXY_IP:8888" --https-proxy "http://$PROXY_IP:8888"
 ```
 
 
