@@ -3,6 +3,8 @@
 このリポジトリーの CloudFromation は、ROSA 環境でのネットワークトラフィックを観察するために作られたものです。
 デプロイされた環境を使う事で、ROSA HCP Cluster を Private Cluster として作成した時に、どのような通信が Egress として発生するかが確認できます。
 
+このレポジトリーの CloudFormation を使用する事で以下のような実験環境を構築できます。
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/f35c5be6-5d3d-491e-9a5e-ab7200c62669)
 
 # 作業環境のセットアップ
 
