@@ -1,3 +1,5 @@
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/d739e5e1-1c74-4af1-ad88-422b3ea96451)
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/cc03ab95-1bdc-44a3-86b5-a6cce7b3012a)
 # はじめに
 
 このリポジトリーの CloudFromation は、ROSA 環境でのネットワークトラフィックを観察するために作られたものです。
@@ -248,7 +250,8 @@ Default の状態では、Security Group の設定により、Cluster のある 
 
 
 「セキュリティグループ」タブから「グループＩＤ」をクリックします。
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/00d96a8a-06fb-4e2a-8e0f-f22f8d77c042)
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/c39bd22f-26a5-4d27-be43-dbdb87edc96d)
+
 
 「セキュリティグループ名」が `default` では**無い**長い名前になっているもので、「VPC ID」が ROSA HCP を作成した VPC IDのものを選択し、「インバウンドルール」タブをクリックします。
 
