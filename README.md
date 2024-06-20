@@ -1,12 +1,11 @@
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/d739e5e1-1c74-4af1-ad88-422b3ea96451)
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/cc03ab95-1bdc-44a3-86b5-a6cce7b3012a)
 # はじめに
 
 このリポジトリーの CloudFromation は、ROSA 環境でのネットワークトラフィックを観察するために作られたものです。
 デプロイされた環境を使う事で、ROSA HCP Cluster を Private Cluster として作成した時に、どのような通信が Egress として発生するかが確認できます。
 
 このレポジトリーの CloudFormation を使用する事で以下のような実験環境を構築できます。
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/f35c5be6-5d3d-491e-9a5e-ab7200c62669)
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/a1727658-bac4-4e43-ac4a-29edc3c4b019)
+
 
 # 作業環境のセットアップ
 
@@ -244,16 +243,17 @@ Default の状態では、Security Group の設定により、Cluster のある 
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/7b7af50d-2437-4023-b302-924592aaaaeb)
 
 「VPC ダッシュボード」 ＝＞「エンドポイント」の画面に行きます。
-`Interface` タイプの 「VPC エンドポイントID」 で、`サービス名` が 「com.amazonaws.vpce.ap-northeast-1.vpce-svc-<ランダム>」の名前になっているものをクリックします。(Gatewayタイプは、AWS Firewall の vpc endpoint で、それ以外は踏み台の Session Manager で必要 Endpointです。)
+
+`Interface` タイプで、`サービス名` が 「com.amazonaws.vpce.ap-northeast-1.vpce-svc-<ランダム>」の名前になっているものの 「VPC エンドポイントID」 の チェックボックス を選択します。(Gatewayタイプは、AWS Firewall の vpc endpoint で、それ以外は踏み台の Session Manager で必要 Endpointです。)
 
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/9bf433ad-d52f-4734-9035-d64f0bcc50b1)
 
 
-「セキュリティグループ」タブから「グループＩＤ」をクリックします。
+下の画面にスクロールして、「セキュリティグループ」タブから「グループＩＤ」をクリックします。
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/c39bd22f-26a5-4d27-be43-dbdb87edc96d)
 
 
-「セキュリティグループ名」が `default` では**無い**長い名前になっているもので、「VPC ID」が ROSA HCP を作成した VPC IDのものを選択し、「インバウンドルール」タブをクリックします。
+「セキュリティグループID」が、一つ前のステップの「グループID」と同じである行のチェックボックスを選択し、画面下部にある「インバウンドルール」タブをクリックします。
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/50bf3ee3-836b-46fa-a0bf-0a8d82b746b3)
 
 「インバウンドルール」として、プロトコル `HTTPS` / ソース `10.11.0.0/16` (bastion 用の VPC の CIDR) というエントリーを作成します。
