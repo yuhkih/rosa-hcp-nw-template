@@ -1,9 +1,18 @@
 # はじめに
 
+<<<<<<< HEAD
 このリポジトリーの CloudFromation を使うと、AWS VPC 環境と、AWS Network Firewall が構成された状態でデプロイされます。
 
 デプロイされた環境を使う事で、ROSA HCP Cluster を Private Cluster として作成した時に、どのような通信が Egress として発生するかが確認できます。
 
+=======
+このリポジトリーの CloudFromation は、ROSA 環境でのネットワークトラフィックを観察するために作られたものです。
+デプロイされた環境を使う事で、ROSA HCP Cluster を Private Cluster として作成した時に、どのような通信が Egress として発生するかが確認できます。
+
+このレポジトリーの CloudFormation を使用する事で以下のような実験環境を構築できます。
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/a1727658-bac4-4e43-ac4a-29edc3c4b019)
+
+>>>>>>> 820c81be93ffd65da1a5dc06ef8f9dce787c77c9
 
 # 作業環境のセットアップ
 
@@ -73,6 +82,8 @@ Single AZ の実験環境を作成します。
 
 ```
 rosa-PRV_NAT_FW-sz.yaml
+<<<<<<< HEAD
+=======
 ```
 
 を使用して、デプロイ完了まで待ちます。AWS GUIから上記の YAML をインポート可能です。
@@ -116,12 +127,106 @@ AWS Region 名の変数をセットします。
 ```
 export REGION=ap-northeast-1
 ```
+# HTTP Proxy の設置 (Optional) 
+
+OpenShift では Cluster Wide Proxy と呼ばれていますが、OpenShift Cluster からの Egress を HTTP Proxy に飛ばす機能があります。
+`rosa-ssm-bastion-sz.yaml` を CloudFormation で適用する事で ROSA Cluster と同じ Private Network に HTTP Proxy をデプロイします。
+
+CLI の場合は、以下のコマンドを実行します。
+
+```
+aws cloudformation deploy --template-file rosa-ssm-bastion-sz.yaml --stack-name ssmbastion --capabilities CAPABILITY
+_NAMED_IAM
+```
+
+この CloudFormation を使うと以下の図中の Proxy Server が作成されます。この Proxy Server は HTTP 8888 port で Listen します。ROSAがこの Proxy を使用するには別途 ROSA 側の設定が必要です。
+HTTP/HTTPSの Egress アクセスの許可は、HTTP Proxy の proxy.conf で行えるので、AWS Firewall を使う必要はありません。一方で、AWS Firewall では、HTTP Proxy を通過しない Egress トラフィックを検知する事ができます。
+
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/c7cbdf10-8841-45a9-97cb-b14caddfa69b)
+
+この HTTP Proxy は、SSM で AWS Console 上からアクセスできます。
+
+作成された Proxy Server の IPアドレスは以下のコマンドで取得できます。
+
+```
+export PROXY_IP=`aws ec2 describe-instances | jq '.Reservations[].Instances[] | select(.Tags[].Value =="ssm-bastion-BastionInstance1") | .PrivateIpAddress'| sed 's/"//g'`
+```
+
+この $PROXY_IP の値は、ROSA Cluster のインストール時に使用します。
+
+HTTP Proxy (Cluster Wide Proxy) のログは、EC2インスタンスにセッションマネージャー経由でアクセス後、以下のコマンドで確認できます。
+
+```
+tail -f /var/log/httpd/proxy_log
+>>>>>>> 820c81be93ffd65da1a5dc06ef8f9dce787c77c9
+```
+
+を使用して、デプロイ完了まで待ちます。AWS GUIから上記の YAML をインポート可能です。
+
+<<<<<<< HEAD
+CLI から CloudFormation を使って実行する場合は以下のようになります。
+
+```
+aws cloudformation deploy --template-file  rosa-PRV_NAT_FW-sz.yaml --stack-name myROSANetwork --capabilities CAPABILITY_NAMED_IAM
+```
+
+実行ログなどは、AWS Console 上から確認した方がわかりやすいかもしれません。
+
+これをデプロイする事で、以下のような環境が作成されます。
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/2b4805a4-a613-4a5c-aef3-d0b08f210677)
+
+本来であれば、この VPC には、Private Subnet だけを置いて、Egress 用の VPC を分割した方が理解しやすい所ですが、そうなると環境作成の時間もコストもかかるので、このようなネットワーク構成にしています。
+ROSA の PrivateLink クラスターを Private Subnet に作成した場合、Load Banalcer の持つ IP も Private の IP になり、外からトラフィックが入ってくる事はありません。
+
+## Subnetid の変数へのセット
+
+サブネットIDを変数にセットします。
+
+jq コマンドをインストールしている場合は、AWS CLI で以下のように取得できます。
+
+・Single AZ の場合 ( Private Subnet は 1つです)
+
+```
+export SUBNET_IDS=`aws ec2 describe-subnets | jq -r '.Subnets[] | [ .CidrBlock, .SubnetId, .AvailabilityZone, .Tags[].Value ] | @csv' | grep Private-Subnet1 | awk -F'[,]' '{print $2}' | sed 's/"//g'`
+```
+
+## 変数の準備
+
+Cluster名の変数をセットします。
+
+```
+export CLUSTER_NAME=myhcpcluster
+```
+
+AWS Region 名の変数をセットします。
+
+```
+export REGION=ap-northeast-1
+```
 
 ## ROSA HCP Cluster の install
 
 以下の変数がセットされている事を今一度、確認します。
+=======
+# ROSA HCP Cluster の install
+
+以下の変数がセットされている事を今一度、確認します。
 
 
+```
+echo $SUBNET_IDS
+```
+
+```
+echo $CLUSTER_NAME
+```
+>>>>>>> 820c81be93ffd65da1a5dc06ef8f9dce787c77c9
+
+```
+echo $REGION
+```
+
+<<<<<<< HEAD
 ```
 echo $SUBNET_IDS
 ```
@@ -135,12 +240,39 @@ echo $REGION
 ```
 
 上記の変数のセットが確認できたら、以下の手順書に進み Private Cluster をインストールします。
+=======
+HTTP Proxy を設置した場合は以下も確認してください
+
+```
+echo $PROXY_IP
+```
+
+上記の変数のセットが確認できたら、以下の手順書に進み Private Cluster をインストールします。
+
+[こちらの](https://yuhkih.github.io/mcs-docs/docs/rosa-hcp/create-delete/rosa-hcp-enable/)の 3～5の1 までの手順を実行します。
+
+ここでは Private Cluster を作成するので、`rosa create cluster` の実行時は手順の 5.1 の以下を実行します。
+
+```
+rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS -i --private-link -y -m auto
+```
+
+HTTP Proxy を設置した場合は、**手順の 5.1 で、上記の代わりに以下を実行してください。**
+
+```
+rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS -i --private-link -y -m auto --http-proxy "http://$PROXY_IP:8888" --https-proxy "http://$PROXY_IP:8888"
+```
+>>>>>>> 820c81be93ffd65da1a5dc06ef8f9dce787c77c9
 
 [こちらの](https://yuhkih.github.io/mcs-docs/docs/rosa-hcp/create-delete/rosa-hcp-enable/)の 3～5の手順を実行します。
 
 # 踏み台用 VPC / Transit Gateway と踏み台のデプロイ
 
+<<<<<<< HEAD
 当初は SSM を有効にした EC2 インスタンスを ROSA VPC 内にデプロイして踏み台としていたのですが、AWS Console を通した操作だとどうも操作性がよくないため、通常のターミナルアクセスができるように別の VPCに踏み台をデプロイしています。
+=======
+当初は SSM を有効にした EC2 インスタンスを ROSA VPC 内にデプロイして踏み台としていたのですが、AWS Console を通した操作だと、どうも操作性がよくないため、通常のターミナルアクセスができるように別の VPCに踏み台をデプロイしています。
+>>>>>>> 820c81be93ffd65da1a5dc06ef8f9dce787c77c9
 
 また、これによりブラウザから Private Network 内の ROSAクラスターにアクセスできるようになります。
 
@@ -160,6 +292,7 @@ aws cloudformation deploy --template-file bastion-vpc-and-transit-gw-sz.yaml --s
 
 この CloudFormation Template によって、 Bastion 用の VPCとTransit Gateway が構成されます。
 
+<<<<<<< HEAD
 Single AZ 構成の場合は以下の図の左側の VPC と踏み台となる 2つの EC2、ROSA VPC と接続するための Transit Gatway が環境が構築されます。
 左側に設置された VPC は、踏み台を使って、隣の Cluster のある VPCを覗くための VPCで、Cluster のある VPC からの egress トラフィックはこの VPCを通過しません。
 
@@ -171,6 +304,25 @@ ROSA の VPC の Route 53 の 設定を編集します。
 
 このままでは、踏み台用に作成した VPC から ROSA で使用されているプライベートなドメインを解決できないため、ROSA の プライベートドメインの Zone の設定を編集して、新しく作成した踏み台用の VPCを信頼するように設定します。
 
+=======
+以下の図の左側の VPC と踏み台となる 2つの EC2、ROSA VPC と接続するための Transit Gatway が環境が構築されます。
+左側に設置された VPC は、踏み台を使って、隣の Cluster のある VPCを覗くための VPCで、Cluster のある VPC からの egress トラフィック(インターネットに出るトラフィック）はこの VPCを通過しません。
+
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/23bd3cb3-268f-49d6-a918-8660e6e598c4)
+
+HTTP Proxy を設置した場合は、以下のようになります。
+
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/7b668c31-90c5-46de-b8a0-c51a9e9423a4)
+
+## Route 53 の設定の編集
+
+ROSA の VPC の Route 53 の 設定を編集します。
+
+Default の状態では、Cluster のある VPC からのみ Private ゾーンの名前解決ができるようになっています。
+このままでは、踏み台用に作成した VPC から ROSA で使用されているプライベートなドメインを解決できないため、ROSA の プライベートドメインの Zone の設定を編集して、新しく作成した踏み台用の VPCを信頼するように設定します。
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/11bf637f-4a63-41de-ae31-19becbcd3004)
+
+>>>>>>> 820c81be93ffd65da1a5dc06ef8f9dce787c77c9
 Route53の画面で `openshiftapps.com`  というドメイン名を含む `プライベート`の Zone を探します。
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/4b94739c-447c-4423-ba17-112d462c6781)
 
@@ -183,6 +335,7 @@ Route53の画面で `openshiftapps.com`  というドメイン名を含む `プ�
 
 ## VPC Endpoint のアクセス許可
 
+<<<<<<< HEAD
 「VPC ダッシュボード」 ＝＞「エンドポイント」の画面に行きます。
 `Interface` タイプの 「VPC エンドポイントID」 をクリックします。(Gatewayタイプは、AWS Firewall の vpce でこの環境独自のものです)
 
@@ -195,6 +348,26 @@ Route53の画面で `openshiftapps.com`  というドメイン名を含む `プ�
 「セキュリティグループ名」が `default` では**無い**長い名前になっているもので、「VPC ID」が ROSA HCP を作成した VPC IDのものを選択し、「インバウンドルール」タブをクリックします。
 
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/55e294aa-9f91-477b-9fa8-cbf6ecc0dc67)
+=======
+Default の状態では、Security Group の設定により、Cluster のある VPC からのみ Controlplane に繋がる Endpoint へのアクセスが可能になっています。
+このままでは、踏み台用に作成した VPC から ROSA への oc コマンドが実行できないため、設定を変更します。
+
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/7b7af50d-2437-4023-b302-924592aaaaeb)
+
+「VPC ダッシュボード」 ＝＞「エンドポイント」の画面に行きます。
+
+`Interface` タイプで、`サービス名` が 「com.amazonaws.vpce.ap-northeast-1.vpce-svc-<ランダム>」の名前になっているものの 「VPC エンドポイントID」 の チェックボックス を選択します。(Gatewayタイプは、AWS Firewall の vpc endpoint で、それ以外は踏み台の Session Manager で必要 Endpointです。)
+
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/9bf433ad-d52f-4734-9035-d64f0bcc50b1)
+
+
+下の画面にスクロールして、「セキュリティグループ」タブから「グループＩＤ」をクリックします。
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/c39bd22f-26a5-4d27-be43-dbdb87edc96d)
+
+
+「セキュリティグループID」が、一つ前のステップの「グループID」と同じである行のチェックボックスを選択し、画面下部にある「インバウンドルール」タブをクリックします。
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/50bf3ee3-836b-46fa-a0bf-0a8d82b746b3)
+>>>>>>> 820c81be93ffd65da1a5dc06ef8f9dce787c77c9
 
 「インバウンドルール」として、プロトコル `HTTPS` / ソース `10.11.0.0/16` (bastion 用の VPC の CIDR) というエントリーを作成します。
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/2eb11780-10f4-400a-91ce-52661b57805c)
@@ -294,6 +467,7 @@ Firewall のログは、「CloudWatch」の「ロググループ」から確認�
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/6fcc272c-a8ce-4277-8ab7-ee852b1682a8)
 
 
+<<<<<<< HEAD
 # HTTP Proxy を設置してみる
 
 OpenShift では Cluster Wide Proxy と呼ばれていますが、OpenShift Cluster からの Egress を HTTP Proxy に飛ばす機能があります。
@@ -311,6 +485,8 @@ aws cloudformation deploy --template-file bastion-vpc-and-transit-gw-sz.yaml --s
 HTTP/HTTPSの Egress アクセスの許可は、HTTP Proxy の proxy.conf で行えるので、AWS Firewall を使う必要はありません。一方で、AWS Firewall では、HTTP Proxy を通過しない Egress トラフィックを検知する事ができます。
 
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/fed61bf5-2a58-4b95-9f1f-bd906ac47603)
+=======
+>>>>>>> 820c81be93ffd65da1a5dc06ef8f9dce787c77c9
 
 
 # 環境の削除
@@ -334,6 +510,13 @@ rosa delete oidc-provider --oidc-config-id <oidc config id> -m auto -y
 
 **CloudFormation Stack の削除**
 
+<<<<<<< HEAD
+=======
+CloudFormation の Template は依存関係をもっているので、 `bastion VPC` or `Proxy Server` => `ROSA HCP VPC` の順で削除する必要があります。
+
+タイミングによって失敗する事もありますが、再実行するとほとんどのケースでうまく行きます。エラーの詳細などは、AWS GUI を見た方がわかりやすいです。
+
+>>>>>>> 820c81be93ffd65da1a5dc06ef8f9dce787c77c9
 bastion VPC の削除
 
 ```
@@ -345,6 +528,21 @@ bastion VPC の削除待ち
 ```
 aws cloudformation wait stack-delete-complete --stack-name mybastion
 ```
+<<<<<<< HEAD
+=======
+
+Proxy server の削除
+
+```
+aws cloudformation delete-stack --stack-name ssmbastion
+```
+
+Proxy server の削除待ち
+
+```
+aws cloudformation wait stack-delete-complete --stack-name ssmbastion
+```
+>>>>>>> 820c81be93ffd65da1a5dc06ef8f9dce787c77c9
   
 ROSA HCP VPC の削除
 
