@@ -352,6 +352,8 @@ SSHの鍵は CloudFormation で Bastionがデプロイされた時に AWS 上に
 
 「VPC」=> 「Network Firewall: ファイアウォールポリシー」=> 「singleaz-InspectionFirewall-Policy」のような名前の `Firewall Policy` が設定されていて、以下のような 「ステートフルルールグループ」のサンプルがあらかじめ作成されています。(いろいろ書き替えているので、時期によって内容が異なる可能性があります）
 
+ご自身でドメインを追加・削除をしたり、ルールを作成して動作を確かめてみてください。
+
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/a0293704-4ff5-4cbe-86b1-ba08c959d7b5)
 
 上記のルールを編集しながら、アウトバンドトラフィックの確認ができます。
