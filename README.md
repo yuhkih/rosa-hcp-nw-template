@@ -219,7 +219,9 @@ HTTP Proxy を設置した場合は、以下のようになります。
 
 ROSA の VPC の Route 53 の 設定を編集します。
 
+Default の状態では、Cluster のある VPC からのみ Private ゾーンの名前解決ができるようになっています。
 このままでは、踏み台用に作成した VPC から ROSA で使用されているプライベートなドメインを解決できないため、ROSA の プライベートドメインの Zone の設定を編集して、新しく作成した踏み台用の VPCを信頼するように設定します。
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/11bf637f-4a63-41de-ae31-19becbcd3004)
 
 Route53の画面で `openshiftapps.com`  というドメイン名を含む `プライベート`の Zone を探します。
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/4b94739c-447c-4423-ba17-112d462c6781)
@@ -232,6 +234,11 @@ Route53の画面で `openshiftapps.com`  というドメイン名を含む `プ�
 設定後、名前解決ができるようになるまで、1分以上かかるかもしれません。
 
 ## VPC Endpoint のアクセス許可
+
+Default の状態では、Security Group の設定により、Cluster のある VPC からのみ Controlplane に繋がる Endpoint へのアクセスが可能になっています。
+このままでは、踏み台用に作成した VPC から ROSA への oc コマンドが実行できないため、設定を変更します。
+
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/7b7af50d-2437-4023-b302-924592aaaaeb)
 
 「VPC ダッシュボード」 ＝＞「エンドポイント」の画面に行きます。
 `Interface` タイプの 「VPC エンドポイントID」 をクリックします。(Gatewayタイプは、AWS Firewall の vpce でこの環境独自のものです)
