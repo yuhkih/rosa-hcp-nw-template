@@ -166,11 +166,6 @@ Single AZ 構成の場合は以下の図の左側の VPC と踏み台となる 2
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/23bd3cb3-268f-49d6-a918-8660e6e598c4)
 
 
-```
-export PROXY_IP=`aws ec2 describe-instances --query 'Reservations[].Instances[].{Name:Tags[?Value=="ssm-bastion-BastionInstance1"]|[0].Value,PrivateIp:PrivateIpAddress}' | grep "PrivateIp" | awk
- -F'[:]' '{print $2}' | sed 's/"//g'`
-```
-
 ## Route 53 の設定の編集
 
 ROSA の VPC の Route 53 の 設定を編集します。
@@ -318,6 +313,21 @@ _NAMED_IAM
 HTTP/HTTPSの Egress アクセスの許可は、HTTP Proxy の proxy.conf で行えるので、AWS Firewall を使う必要はありません。一方で、AWS Firewall では、HTTP Proxy を通過しない Egress トラフィックを検知する事ができます。
 
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/fed61bf5-2a58-4b95-9f1f-bd906ac47603)
+
+Proxy Server の IPアドレスは以下のコマンドで取得できます。
+
+```
+export PROXY_IP=`aws ec2 describe-instances --query 'Reservations[].Instances[].{Name:Tags[?Value=="ssm-bastion-BastionInstance1"]|[0].Value,PrivateIp:PrivateIpAddress}' | grep "PrivateIp" | awk
+ -F'[:]' '{print $2}' | sed 's/"//g'`
+```
+
+この $PROXY_IP の値を、ROSA Cluster にセットして上げる必要があります。
+
+Cluster 作成時に指定する場合は、以下の例のように指定します。
+
+```
+rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS -i --private-link -y -m auto --http-proxy http://$PROXY_IP:8888 --https-proxy http://$PROXY_IP:8888
+```
 
 
 
