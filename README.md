@@ -165,6 +165,12 @@ Single AZ 構成の場合は以下の図の左側の VPC と踏み台となる 2
 
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/23bd3cb3-268f-49d6-a918-8660e6e598c4)
 
+
+```
+export PROXY_IP=`aws ec2 describe-instances --query 'Reservations[].Instances[].{Name:Tags[?Value=="ssm-bastion-BastionInstance1"]|[0].Value,PrivateIp:PrivateIpAddress}' | grep "PrivateIp" | awk
+ -F'[:]' '{print $2}' | sed 's/"//g'`
+```
+
 ## Route 53 の設定の編集
 
 ROSA の VPC の Route 53 の 設定を編集します。
