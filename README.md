@@ -116,7 +116,7 @@ AWS Region 名の変数をセットします。
 ```
 export REGION=ap-northeast-1
 ```
-# HTTP Proxy の設置
+# HTTP Proxy の設置 (Optional) 
 
 OpenShift では Cluster Wide Proxy と呼ばれていますが、OpenShift Cluster からの Egress を HTTP Proxy に飛ばす機能があります。
 `rosa-ssm-bastion-sz.yaml` を CloudFormation で適用する事で ROSA Cluster と同じ Private Network に HTTP Proxy をデプロイします。
