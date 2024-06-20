@@ -1,0 +1,334 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Bastion VPC (prublic / private subnet ) which has a bation server in each subnet and Transit Gateway to a specifed VPC"
+
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - Label:
+          default: "VPC Parameters"
+        Parameters:
+          - AvailabilityZone1Selection
+      - Label:
+          default: "EC2 Parameters"
+        Parameters:
+          - LatestAmiId
+
+# -------------------------------------------
+# Parameters
+Parameters:
+  EnvironmentName:
+    Description: An environment name that is prefixed to resource names
+    Type: String
+    Default: bation-vpc
+
+  VpcCIDR:
+    Description: Please enter the IP range (CIDR notation) for this VPC
+    Type: String
+    Default: 10.11.0.0/16
+
+  #  Public Subnet
+  PublicSubnetCIDR:
+    Description: Please enter the IP range (CIDR notation) for the public subnet in the first Availability Zone
+    Type: String
+    Default: 10.11.0.0/19
+
+  # Private Subnet
+
+  PrivateSubnetCIDR:
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the first Availability Zone
+    Type: String
+    Default: 10.11.128.0/19
+
+  LatestAmiId:
+    Description: Latest EC2 AMI from Systems Manager Parameter Store
+    Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
+    Default: "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+
+  AvailabilityZone1Selection:
+    Description: Availability Zone 1
+    Type: AWS::EC2::AvailabilityZone::Name
+    Default: ap-northeast-1a
+# ------------------------------------------------------
+# Resources
+
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Ref EnvironmentName
+
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Ref EnvironmentName
+
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+
+  # Public Subnet  x 1
+
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Ref AvailabilityZone1Selection
+      CidrBlock: !Ref PublicSubnetCIDR
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Public Subnet (Bastion VPC)
+
+  # Private Subnet x 1
+
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Ref AvailabilityZone1Selection
+      CidrBlock: !Ref PrivateSubnetCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Private Subnet (Bastion VPC)
+
+  # EIP for NatGateway x1
+
+  NatGateway1EIP:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+
+  # NatGateway x 1
+
+  NatGateway1:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGateway1EIP.AllocationId
+      SubnetId: !Ref PublicSubnet
+
+  # Default Route Table for VPC
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Public Routes
+
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  # Public Subnet Route Table x 1
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet
+
+  # Private Subent Route Table 1
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName} Private Routes (AZ1)
+
+  DefaultPrivateRoute1:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway1
+
+  PrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnet
+
+  # Security Group
+  NoIngressSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: "no-ingress-sg"
+      GroupDescription: "Security group with no ingress rule"
+      VpcId: !Ref VPC
+
+  # Testing Security Group:
+  EC2SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: "ICMP access from VPC"
+      GroupName: !Sub ${EnvironmentName}-BastionInstance-Sg1
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: "22"
+          ToPort: "22"
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: icmp
+          FromPort: -1
+          ToPort: -1
+          CidrIp: { "Fn::ImportValue": "vpc-cidr-rosa" }
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-BastionInstance-Sg1
+
+  NewKeyPair:
+    Type: "AWS::EC2::KeyPair"
+    Properties:
+      KeyName: BastionKeyPair
+
+  # Bastion1 (Public subnet)
+  BastionInstance1:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref LatestAmiId
+      KeyName: !Ref NewKeyPair
+      SubnetId: !Ref PublicSubnet
+      InstanceType: t2.micro
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-BastionInstance-Public
+        - Key: Subnet
+          Value: Public
+      UserData:
+        Fn::Base64:  |
+          #!/bin/bash -xe
+          exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+          sleep 60
+          date > /tmp/ec2-install.log
+          yum update -y
+          curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/rosa/latest/rosa-linux.tar.gz
+          tar -zxf rosa-linux.tar.gz 
+          sudo mv ./rosa /usr/local/bin/
+          rosa download oc
+          tar -xzf openshift-client-linux.tar.gz 
+          sudo mv ./oc /usr/local/bin
+          sudo mv ./kubectl /usr/local/bin
+          oc version  >> /tmp/ec2-install.log
+          sudo yum install -y git
+          git version >> /tmp/ec2-install.log
+          sudo yum install -y jq
+
+  # Bastion2 (Private Subnet)
+  BastionInstance2:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: !Ref LatestAmiId
+      KeyName: !Ref NewKeyPair
+      SubnetId: !Ref PrivateSubnet
+      InstanceType: t2.micro
+      SecurityGroupIds:
+        - !Ref EC2SecurityGroup
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-BastionInstance-Private
+        - Key: Subnet
+          Value: Private
+      UserData:
+        Fn::Base64: |
+          #!/bin/bash -xe
+          exec > >(tee /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
+          sleep 60
+          date > /tmp/ec2-install.log
+          yum update -y
+          curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/rosa/latest/rosa-linux.tar.gz
+          tar -zxf rosa-linux.tar.gz 
+          sudo mv ./rosa /usr/local/bin/
+          rosa download oc
+          tar -xzf openshift-client-linux.tar.gz 
+          sudo mv ./oc /usr/local/bin
+          sudo mv ./kubectl /usr/local/bin
+          oc version  >> /tmp/ec2-install.log
+          sudo yum install -y git
+          git version >> /tmp/ec2-install.log
+          sudo yum install -y jq
+
+  # ---------------------------------------------------------------------
+  #  VPC Peering
+  # --------------------------------------------------------------------
+  # ROSA VPC ID = { "Fn::ImportValue": "vpc-id-rosa" }
+  # Bastion VPC IC = VPC
+
+  VPCPeeringConnection: 
+    Type: AWS::EC2::VPCPeeringConnection
+    Properties:
+      VpcId: !Ref VPC  # Bastion VPC
+      PeerVpcId:  { "Fn::ImportValue": "vpc-id-rosa" }  # ROSA VPC ID
+
+  PeeringRouteBastion:  # Bastion Side
+    Type: AWS::EC2::Route
+    Properties: 
+      DestinationCidrBlock:  { "Fn::ImportValue": "vpc-cidr-rosa" } 
+      VpcPeeringConnectionId: !Ref VPCPeeringConnection
+      RouteTableId: !Ref PrivateRouteTable  
+
+  PeeringRouteRosa1:  # ROSA Side Private Subnet 1
+    Type: AWS::EC2::Route
+    Properties: 
+      DestinationCidrBlock: !Ref VpcCIDR  # Bastion VPC CIDR
+      VpcPeeringConnectionId :  !Ref VPCPeeringConnection
+      RouteTableId :  { "Fn::ImportValue": "private-rtb-id1-rosa" }  # ROSA Private Route table ID 
+
+  PeeringRouteRosa2:  # ROSA Side  Private Subnet 2
+    Type: AWS::EC2::Route
+    Properties: 
+      DestinationCidrBlock: !Ref VpcCIDR  # Bastion VPC CIDR
+      VpcPeeringConnectionId :  !Ref VPCPeeringConnection
+      RouteTableId :  { "Fn::ImportValue": "private-rtb-id2-rosa" }  # ROSA Private Route table ID 
+
+  PeeringRouteRosa3:  # ROSA Side  Private Subnet 3
+    Type: AWS::EC2::Route
+    Properties: 
+      DestinationCidrBlock: !Ref VpcCIDR  # Bastion VPC CIDR
+      VpcPeeringConnectionId :  !Ref VPCPeeringConnection
+      RouteTableId :  { "Fn::ImportValue": "private-rtb-id3-rosa" }  # ROSA Private Route table ID 
+# ------------------------------------------------------
+# Out put
+
+Outputs:
+  VPC:
+    Description: A reference to the created VPC
+    Value: !Ref VPC
+
+  PublicSubnets:
+    Description: A list of the public subnets
+    Value: !Join [",", [!Ref PublicSubnet]]
+
+  PrivateSubnets:
+    Description: A list of the private subnets
+    Value: !Join [",", [!Ref PrivateSubnet]]
+
+  PublicSubnet:
+    Description: A reference to the public subnet
+    Value: !Ref PublicSubnet
+
+  PrivateSubnet:
+    Description: A reference to the private subnet
+    Value: !Ref PrivateSubnet
+
+  BastionKeyPair:
+    Description: Bastion Key Name. You can get this key from Systems Manager parameter
+    Value: !Ref NewKeyPair

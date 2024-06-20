@@ -1,0 +1,315 @@
+# ---------------------------
+# Create VPC for ROSA  
+# ---------------------------
+
+# CloudFormation Parameters
+RosaAz1=ap-northeast-1a   # Tokyo
+RosaAz2=ap-northeast-1c   # Tokyo
+RosaAz3=ap-northeast-1d   # Tokyo
+RosaCIDR=10.0.0.0/16       # common variable for both CloudFormation and rosa CLI.
+
+Private1CIDR="10.0.1.0/24"
+Private2CIDR="10.0.2.0/24"
+Private3CIDR="10.0.4.0/24"
+Natgw1CIDR="10.0.0.0/24"
+Natgw2CIDR="10.0.3.0/24"
+Natgw3CIDR="10.0.5.0/24"
+Fw1CIDR="10.0.16.0/28"
+Fw2CIDR="10.0.16.16/28"
+Fw3CIDR="10.0.16.32/28"
+
+CFStackName=stack-rosa
+
+# Deploy VPC with Multi AZ 
+aws cloudformation create-stack \
+--stack-name $CFStackName \
+--template-body file://rosa-awsfw-multiaz.yaml  \
+--parameters ParameterKey=AvailabilityZone1Selection,ParameterValue=$RosaAz1 \
+ParameterKey=AvailabilityZone2Selection,ParameterValue=$RosaAz2 \
+ParameterKey=AvailabilityZone3Selection,ParameterValue=$RosaAz3 \
+ParameterKey=VpcCIDR,ParameterValue=$RosaCIDR \
+ParameterKey=Private1CIDR,ParameterValue=$Private1CIDR \
+ParameterKey=Private2CIDR,ParameterValue=$Private2CIDR \
+ParameterKey=Private3CIDR,ParameterValue=$Private3CIDR \
+ParameterKey=Natgw1CIDR,ParameterValue=$Natgw1CIDR \
+ParameterKey=Natgw2CIDR,ParameterValue=$Natgw2CIDR \
+ParameterKey=Natgw3CIDR,ParameterValue=$Natgw3CIDR \
+ParameterKey=FW1CIDR,ParameterValue=$Fw1CIDR \
+ParameterKey=FW2CIDR,ParameterValue=$Fw2CIDR \
+ParameterKey=FW3CIDR,ParameterValue=$Fw3CIDR \
+--capabilities CAPABILITY_NAMED_IAM
+
+
+# Need to wait here until the stack is created.
+aws cloudformation list-stacks \
+  --query "StackSummaries[? \
+    StackName == \`${CFStackName}\` \
+      && StackStatus != \`DELETE_COMPLETE\` \
+    ].StackName" \
+  --output text
+
+# ---------------------------
+# Create ROSA cluster 
+# ---------------------------
+
+# rosa CLI parameters
+ClusterName=mycluster
+
+
+# Get ROSA VPC subnetIds
+export PrivateSubnetID1=`aws ec2 describe-subnets | jq -r '.Subnets[] | [ .CidrBlock, .SubnetId, .AvailabilityZone, .Tags[].Value ] | @csv' | grep PrivateSubnet1 | awk -F'[,]' '{print $2}' | sed 's/"//g'`
+export PrivateSubnetID2=`aws ec2 describe-subnets | jq -r '.Subnets[] | [ .CidrBlock, .SubnetId, .AvailabilityZone, .Tags[].Value ] | @csv' | grep PrivateSubnet2 | awk -F'[,]' '{print $2}' | sed 's/"//g'`
+export PrivateSubnetID3=`aws ec2 describe-subnets | jq -r '.Subnets[] | [ .CidrBlock, .SubnetId, .AvailabilityZone, .Tags[].Value ] | @csv' | grep PrivateSubnet3 | awk -F'[,]' '{print $2}' | sed 's/"//g'`
+
+The followings are needed for BYOVPC Public Cluster.
+
+export FwSubnetID1=`aws ec2 describe-subnets | jq -r '.Subnets[] | [ .CidrBlock, .SubnetId, .AvailabilityZone, .Tags[].Value ] | @csv' | grep FirewallSubnet1 | awk -F'[,]' '{print $2}'`
+export FwSubnetID2=`aws ec2 describe-subnets | jq -r '.Subnets[] | [ .CidrBlock, .SubnetId, .AvailabilityZone, .Tags[].Value ] | @csv' | grep FirewallSubnet2 | awk -F'[,]' '{print $2}'`
+export FwSubnetID3=`aws ec2 describe-subnets | jq -r '.Subnets[] | [ .CidrBlock, .SubnetId, .AvailabilityZone, .Tags[].Value ] | @csv' | grep FirewallSubnet3 | awk -F'[,]' '{print $2}'`
+
+
+# Tag Requirement writtin in docuemnts?
+https://mobb.ninja/docs/rosa/private-link/public-ingress
+TAG=$(aws ec2 describe-subnets --subnet-ids $PrivateSubnetID1 -query 'Subnets[0].Tags[?Value == `shared`]' | jq -r '.[0].Key')
+aws ec2 create-tags --resources $FwSubnetID1 --tags Key=Name,Value=$ROSA_CLUSTER_NAME-public  Key=$TAG,Value="shared" Key=kubernetes.io/role/elb,Value="true"
+aws ec2 create-tags --resources $FwSubnetID2 --tags Key=Name,Value=$ROSA_CLUSTER_NAME-public  Key=$TAG,Value="shared" Key=kubernetes.io/role/elb,Value="true"
+aws ec2 create-tags --resources $FwSubnetID3 --tags Key=Name,Value=$ROSA_CLUSTER_NAME-public  Key=$TAG,Value="shared" Key=kubernetes.io/role/elb,Value="true"
+
+# ------------------------------------------------------
+# Create IAMRole and set them to variables 
+# ------------------------------------------------------
+rosa create account-roles -m auto -y
+
+# ------------------------------------------------------
+# Get Necessary parameter for CLI installation
+# ------------------------------------------------------
+INSTALL_ROLE=`aws iam list-roles | jq -r '.Roles[] | [.RoleName, .Arn] | @csv' | grep ManagedOpenShift-Installer-Role |  awk -F'[,]' '{print $2}' | sed 's/"//g'`
+SUPPORT_ROLE=`aws iam list-roles | jq -r '.Roles[] | [.RoleName, .Arn] | @csv' | grep ManagedOpenShift-Support-Role |  awk -F'[,]' '{print $2}' | sed 's/"//g'`
+CONTROL_PLANE_ROLE=`aws iam list-roles | jq -r '.Roles[] | [.RoleName, .Arn] | @csv' | grep ManagedOpenShift-ControlPlane-Role |  awk -F'[,]' '{print $2}' | sed 's/"//g'`
+WORKER_ROLE=`aws iam list-roles | jq -r '.Roles[] | [.RoleName, .Arn] | @csv' | grep ManagedOpenShift-Worker-Role |  awk -F'[,]' '{print $2}' | sed 's/"//g'`
+ 
+# sample ouput for a IAM Role
+echo $INSTALL_ROLE
+"arn:aws:iam::878690059572:role/ManagedOpenShift-Installer-Role"
+
+# ---------------------------
+#  Only when Non STS
+# ※ If non-STS. IAM user osdCcsAdmin is needed
+# ---------------------------
+rosa init
+
+# ---------------------------
+#  Check parameters 
+# ---------------------------
+RosaCIDR="10.0.0.0/16"
+
+echo "ClusterName = " $ClusterName
+echo "PrivateSubnetID1 = " $PrivateSubnetID1
+echo "PrivateSubnetID2 = " $PrivateSubnetID2
+echo "PrivateSubnetID3 = " $PrivateSubnetID3
+echo "FwSubnetID1 = " $FwSubnetID1
+echo "FwSubnetID2 = " $FwSubnetID2
+echo "FwSubnetID3 = " $FwSubnetID3
+echo "INSTALL_ROLE = " $INSTALL_ROLE
+echo "SUPPORT_ROLE = "$SUPPORT_ROLE
+echo "CONTROL_PLANE_ROLE = " $CONTROL_PLANE_ROLE
+echo "WORKER_ROLE = " $WORKER_ROLE
+echo "RosaCIDR = " $RosaCIDR
+
+
+# Sample 1 
+# ROSA installation (Multi AZ privateLink )
+# This need to be updated arn changes every time. ( Worked )
+rosa create cluster --cluster-name $ClusterName --sts \
+  --role-arn $INSTALL_ROLE \
+  --support-role-arn $SUPPORT_ROLE \
+  --controlplane-iam-role $CONTROL_PLANE_ROLE \
+  --worker-iam-role $WORKER_ROLE \
+  --multi-az --region ap-northeast-1 --version 4.11.21 --compute-nodes 3 --compute-machine-type m5.xlarge \
+  --machine-cidr $RosaCIDR --service-cidr 172.30.0.0/16 --pod-cidr 10.128.0.0/14  --host-prefix 23 \
+  --private-link \
+  --subnet-ids $PrivateSubnetID1,$PrivateSubnetID2,$PrivateSubnetID3 \
+  -y
+
+# Sample 1-2 (non STS PrivateLink MultiAZ)
+# This need to be updated arn changes every time. ( Worked )
+rosa create cluster --cluster-name $ClusterName \
+  --role-arn $INSTALL_ROLE \
+  --support-role-arn $SUPPORT_ROLE \
+  --controlplane-iam-role $CONTROL_PLANE_ROLE \
+  --worker-iam-role $WORKER_ROLE \
+  --multi-az --region ap-northeast-1 --version 4.11.5 --compute-nodes 3 --compute-machine-type m5.xlarge \
+  --machine-cidr $RosaCIDR --service-cidr 172.30.0.0/16 --pod-cidr 10.128.0.0/14  --host-prefix 23 \
+  --private-link \
+  --subnet-ids $PrivateSubnetID1,$PrivateSubnetID2,$PrivateSubnetID3 \
+  -y 
+
+# Sample 1-3 (STS PrivateLink Single AZ)
+# ROSA installation (Multi AZ privateLink )
+# This need to be updated arn changes every time. ( Worked )
+rosa create cluster --cluster-name $ClusterName \
+  --role-arn $INSTALL_ROLE \
+  --support-role-arn $SUPPORT_ROLE \
+  --controlplane-iam-role $CONTROL_PLANE_ROLE \
+  --worker-iam-role $WORKER_ROLE \
+  --region ap-northeast-1 --version 4.11.5 --compute-nodes 2 --compute-machine-type m5.xlarge \
+  --machine-cidr $RosaCIDR --service-cidr 172.30.0.0/16 --pod-cidr 10.128.0.0/14  --host-prefix 23 \
+  --private-link \
+  --subnet-ids $PrivateSubnetID1 \
+  -y 
+
+
+# Sample 2
+# ROSA installation (Multi AZ public cluster: Tested OK. Needed to open port .openshiftapps.com for public cluster installation)
+# This need to be updated arn changes every time. 
+# NatGw network didn't work for this configuration.
+rosa create cluster --cluster-name $ClusterName --sts \
+  --role-arn $INSTALL_ROLE \
+  --support-role-arn $SUPPORT_ROLE \
+  --controlplane-iam-role $CONTROL_PLANE_ROLE \
+  --worker-iam-role $WORKER_ROLE \
+  --multi-az --region ap-northeast-1 --version 4.11.5 --compute-nodes 3 --compute-machine-type m5.xlarge \
+  --machine-cidr $RosaCIDR --service-cidr 172.30.0.0/16 --pod-cidr 10.128.0.0/14  --host-prefix 23 \
+  --subnet-ids $PrivateSubnetID1,$FwSubnetID1,$PrivateSubnetID2,$FwSubnetID2,$PrivateSubnetID3,$FwSubnetID3
+
+# Sample 3
+# ROSA installation (Single AZ public cluster: Single AZ : Non STS : PrivateLink: Command Passed )
+# This need to be updated arn changes every time. 
+rosa create cluster --cluster-name $ClusterName \
+  --role-arn $INSTALL_ROLE \
+  --support-role-arn $SUPPORT_ROLE \
+  --controlplane-iam-role $CONTROL_PLANE_ROLE \
+  --worker-iam-role $WORKER_ROLE \
+  --region ap-northeast-1 --version 4.11.5 --compute-nodes 2 --compute-machine-type m5.xlarge \
+  --machine-cidr $RosaCIDR --service-cidr 172.30.0.0/16 --pod-cidr 10.128.0.0/14  --host-prefix 23 \
+  --subnet-ids $PrivateSubnetID1 \
+  --private-link \
+  -y
+
+# Sample 4
+# ROSA installation (Single AZ PrivateLink cluster: Not tested yet)
+# This need to be updated arn changes every time. 
+rosa create cluster --cluster-name $ClusterName --sts \
+  --role-arn $INSTALL_ROLE \
+  --support-role-arn $SUPPORT_ROLE \
+  --controlplane-iam-role $CONTROL_PLANE_ROLE \
+  --worker-iam-role $WORKER_ROLE \
+  --single-az --region ap-northeast-1 --version 4.11.5 --compute-nodes 2 --compute-machine-type m5.xlarge \
+  --machine-cidr $RosaCIDR --service-cidr 172.30.0.0/16 --pod-cidr 10.128.0.0/14  --host-prefix 23 \
+  --private-link \
+  --subnet-ids $PrivateSubnetID1
+  -y
+
+# ------------------------------------------------
+# After "rosa create cluster" 
+# create operator roles and OIDC Provider (Tested OK no intervention needed)
+# ------------------------------------------------
+ClusterName=mycluster
+rosa create operator-roles -y -m auto --cluster $ClusterName
+rosa create oidc-provider -y -m auto --cluster $ClusterName
+
+# Wait until the cuslter becomes ready
+rosa logs install -c $ClusterName --watch
+
+# ---------------------------
+# Create ROSA admin user
+# ---------------------------
+# create cluster admin after cluster installation completes
+rosa create admin -c $ClusterName
+
+
+# ---------------------------
+# Create bastion VPC  
+# ---------------------------
+
+# CloudFormation Parameters
+BastionCIDR="10.11.0.0/16"
+PublicSubnetCIDR="10.11.0.0/19"
+PrivateSubnetCIDR="10.11.128.0/19"
+
+BastionStackName=stack-bastionvpc
+
+# Deploy VPC with two bations (private / public)
+aws cloudformation create-stack \
+--stack-name $BastionStackName \
+--template-body file://bastion-vpc-and-transit-gw.yaml  \
+--parameters ParameterKey=VpcCIDR,ParameterValue=$BastionCIDR \
+ParameterKey=PublicSubnetCIDR,ParameterValue=$PublicSubnetCIDR \
+ParameterKey=PrivateSubnetCIDR,ParameterValue=$PrivateSubnetCIDR
+
+
+# Need to wait here until the stack is created.
+while(!CF_STATUS=CREATE_COMPLETE)
+
+aws cloudformation list-stacks \
+  --query "StackSummaries[? \
+    StackName == \`${BastionStackName}\` \
+      && StackStatus != \`DELETE_COMPLETE\` \
+    ].StackStatus" \
+  --output text
+
+Sleep 10
+
+
+# ---------------------------
+#  Delete Cluster
+# ---------------------------
+echo "[Log] delete cluster id"
+rosa delete cluster -y -c $ClusterName
+rosa logs uninstall -c $ClusterName --watch
+
+echo "[Log] get cluster id"
+CLUSTER_ID=$(rosa list cluster | grep $ClusterName | awk -F' ' '{print $1}')
+
+# The followings didn't work. need to specify ID like 219fial09eqna3rdl1pi9ss0qmi8blu2
+echo "[Log] delete operator-roles"
+rosa delete operator-roles -y -m auto -c $ClusterName 
+echo "[Log] delete oidc-provider"
+rosa delete oidc-provider  -y -m auto -c $ClusterName
+
+
+# Intall RHOAM
+# Create Policy for support
+aws iam put-role-policy --role-name ManagedOpenShift-Support-Role --policy-name rhoam-sre-support-policy --policy-document "file://rhoam-sre-support-policy.json"
+
+# Custom Domain RHOAM
+EMAIL=test@example.com
+rosa install addon --cluster mycluster managed-api-service -y --rosa-cli-required true --cidr-range 10.1.0.0/26 --notification-email $EMAIL --addon-managed-api-service 1 --addon-resource-required true --custom-domain_domain ocp4.work --billing-model standard
+
+# Standard RHOAM
+EMAIL=test@example.com
+rosa install addon --cluster mycluster managed-api-service -y --rosa-cli-required true --cidr-range 10.1.0.0/26 --notification-email $EMAIL --addon-managed-api-service 1 --addon-resource-required true  --billing-model standard
+
+# check the progress
+rosa list addons -c mycluster | grep managed-api-service
+
+# Delete RHOAM 
+rosa uninstall addon -c mycluster managed-api-service -y
+
+# GitHub IdP
+ClusterName=mycluster
+rosa create idp --type=github --cluster=$ClusterName
+? Restrict to members of: organizations
+? GitHub organizations: ocp-test1
+...
+
+# add dedicated-admin permissions to a github user
+ClusterName=mycluster
+rosa grant user dedicated-admin --user=yuhkih --cluster=$ClusterName
+rosa list users --cluster=$ClusterName
+
+
+rosa create admin -c $ClusterName
+# BYOVPC Test memo
+  STS - Public - OK
+  non-STS - Public - OK (login ok)
+  STS - Private (just in case ) - 存在しない。STSは Public or PrivateLink の2択
+  non STS - Private (just in case ) -  
+
+# non-STS で PrivateLink の  Menu出てくる？ => 出てくる
+# non-STS PrivateLink で、
+# non-STS PrivateLink の LB 構成 
+# non-STS PrivateLink の　BYOVPC は必須か？
+
+# ocm describe cluster <clusterID> command
+# ocm get /api/accounts_mgmt/v1/subscriptions --parameter search="(organization_id='1s2P4xxxxxxpMuiPHKQlNqBWQF5')" | jq '.items[].cluster_id'

@@ -1,0 +1,230 @@
+# The following will be deployed with this CF
+# 1. Three subnets for each AZ. (Thins template is for single AZ)
+# 2. AWS firewall deployed with a policy which allow all the domains listed on the ROSA document as prerequistes for egress.
+#
+# This template will create the following Network Firewall rules
+#
+#    1) singleaz-DomainAllow-RuleGroup  based on ROSA requirments
+#    2) singleaz-SplunkAllow-RuleGroup  based on ROSA requiremnts (Splunk)
+#    3) singleaz-DomainAllow-RuleGroup-For-Application   For test perpose +  RHOAM (based on blocked logs)
+#    4) singleaz-IcmpAlert-RuleGroup    This crates alert when someone uses ICMP ping in VPC.
+#    
+# This deploys following network model
+#   [Private Subnet] => [ FW Subnet] => [ NATGW(protected) Subnet] 
+#   The model is based on the following AWS blog post.
+#   https://aws.amazon.com/jp/blogs/networking-and-content-delivery/deployment-models-for-aws-network-firewall-with-vpc-routing-enhancements/
+#
+#   [Notice!!!] This template can't rewrite default route entry of Natgateway subent "10.0.0.0/16   local " 
+#               So, you need to change the entry after delploying this template like below.
+#                Destionation    Target              Destination      Target
+#               "10.0.0.0/16     local "   =====>   "10.0.0.0/16      fiewall-endpoint-id
+#  
+# History 
+# 2023/01/13 yuhkih Remove duplicated Output
+# 2023/01/13 yuhkih add  "catalog.redhat.com" to FW for ?
+# 2023/01/14 yuhkih Delete Ingress route table and make the order Private -> Firewall -> NatGw (Still you need to change NATGW route table manually) 
+# 2023/01/14 yuhkih Added allow domains to setup an EC2 for Let's Encrypt (needed in case you put the EC2 in ROSA VPC)
+#              - "dl.fedoraproject.org"          # Added to setup EC2 for Let's Encrypt
+#              - "mirrors.fedoraproject.org"     # Added to setup EC2 for Let's Encrypt
+#              - "d2lzkl7pfhq30w.cloudfront.net" # Added to setup EC2 for Let's Encrypt
+#              - "epel.mirror.angkasa.id"        # Added to setup EC2 for Let's Encrypt
+#              - "ftp.riken.jp"                  # Added to setup EC2 for Let's Encrypt
+#              - "ftp.iij.ad.jp"                 # Added to setup EC2 for Let's Encrypt
+#              - "supporters.eff.org"            # Added to setup EC2 for Let's Encrypt
+# 2023/01/14 yuhkih Export Fierwall subnet id and route tabled id
+# 2023/01/23 yuhkih Added "cloud.redhat.com" to FW # For cluster upgrading
+# 2023/02/01 yuhkih simple Single AZ BYOVPC network WITHOUT AWS NW Firewall (bastion VPC CF won't work with this)  / Not tested yet
+# 2023/02/11 yuhkih add ExportVariablePrefix to avoid export variable conflicts
+# 2023/02/14 yuhkih remove export varibales for bastion server in another VPC.
+# 2023/03/07 yuhkih - Add "SubnetTagHeader" parameter for private subnets
+#            yuhkih - sorted paramters
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "ROSA sample Single AZ network with FW"
+
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - 
+        Label:
+          default: "VPC Parameters"
+        Parameters:
+          - AvailabilityZone1Selection
+          - VpcCIDR
+          - Private1CIDR
+          - NAT1CIDR
+      - 
+        Label:
+          default: Label Paramaters
+        Parameters:
+          - EnvironmentName
+          - SubnetTagHeader
+          
+Parameters:
+  EnvironmentName:
+    Description: An environment name that is prefixed to resource names. If you create multiple clusters using this template, you need to change this name to avoid name confliction.
+    Type: String
+    Default: "singleaz"
+
+  SubnetTagHeader:
+    Description: Tag header for subnets.
+    Type: String
+    Default: "mycluster"
+
+  VpcCIDR:
+    Description: Please enter the IP range (CIDR notation) for this VPC
+    Type: String
+    Default: "10.0.0.0/16"
+
+  # Private Network
+  Private1CIDR:
+    Description: Please enter the IP range (CIDR notation) for Private Netwowrk1
+    Type: String
+    Default: "10.0.1.0/24"
+
+  # NATGW Network
+  NAT1CIDR:
+    Description: Please enter the IP range (CIDR notation) for Public (NAT) Netwowrk1
+    Type: String
+    Default: "10.0.0.0/24"
+
+  AvailabilityZone1Selection:
+    Description: Availability Zone 1
+    Type: AWS::EC2::AvailabilityZone::Name
+    Default: ap-northeast-1a
+
+Resources:
+  # VPC:
+  VPCA:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-VPC
+
+  # Internet Gateway:
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-IGW
+
+  AttachInternetGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPCA
+      InternetGatewayId: !Ref InternetGateway
+
+  # NAT Gateway:
+  NatGw1Eip:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NatGw1:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGw1Eip.AllocationId
+      SubnetId: !Ref NatgwSubnet1
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-NATGWA
+
+  # Private Subnets for Test Instances:
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPCA
+      CidrBlock: !Ref Private1CIDR
+      AvailabilityZone:
+        Ref: AvailabilityZone1Selection
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-Private-Subnet1
+        - Key: SubnetTag
+          Value: !Sub ${SubnetTagHeader}-Private-Subnet1
+
+  # Subnets for NAT GWs:
+  NatgwSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPCA
+      CidrBlock: !Ref NAT1CIDR
+      AvailabilityZone:
+        Ref: AvailabilityZone1Selection
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-Natgw-Subnet1
+        - Key: SubnetTag
+          Value: !Sub ${SubnetTagHeader}-Public-Subnet1
+
+
+  # Private Route Tables:
+  PrivateRtb1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPCA
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-PrivateRouteTable1
+
+  PrivateRtb1Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRtb1
+      SubnetId: !Ref PrivateSubnet1
+
+  PrivateRtb1DefaultRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId: !Ref NatGw1 
+      RouteTableId: !Ref PrivateRtb1
+
+
+  # NATGW Route Tables:
+  NatgwRtb1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPCA
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-NatgwRouteTable1
+
+  # Export Variable Prefix
+    
+  NatgwRtb1Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref NatgwRtb1
+      SubnetId: !Ref NatgwSubnet1
+
+  NatgwRtb1DefaultRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref InternetGateway 
+      RouteTableId: !Ref NatgwRtb1
+
+Outputs:
+  MyStacksRegion:
+    Value: !Ref "AWS::Region"
+
+  RosaVpcCIDR:
+    Value: !Ref VpcCIDR
+    Export:
+      Name: vpc-cidr-rosa
+
+  RosaVpcID:
+    Value: !Ref VPCA
+    Export:
+      Name: vpc-id-rosa

@@ -1,0 +1,563 @@
+# The following will be deployed with this CF
+# 1. Three subnets for each AZ.
+#    Privarte subnet - NATGW subent - FW (Public) subnet - Internet Gateway
+# 2. AWS firewall deployed with a policy which allow all the domains listed on the ROSA document as prerequistes for egress.
+#        
+# This template will create the following Network Firewall rules
+#
+#    1) singleaz-DomainAllow-RuleGroup  based on ROSA requirments
+#    2) singleaz-SplunkAllow-RuleGroup  based on ROSA requiremnts (Splunk)
+#    3) singleaz-DomainAllow-RuleGroup-For-Application   For test perpose +  RHOAM (based on blocked logs)
+#    4) singleaz-IcmpAlert-RuleGroup    This crates alert when someone uses ICMP ping in VPC.
+#    
+# This deploys following network model
+#   [Private Subnet] => [ NATGW(protected) Subnet] => [ FW Subnet]
+#   The model is based on the following AWS blog post.
+#   https://aws.amazon.com/jp/blogs/networking-and-content-delivery/deployment-models-for-aws-network-firewall/
+# 
+# 
+# History 
+# 2023/01/13 yuhkih add  "catalog.redhat.com" to FW for ?
+# 2023/01/14 yuhkih Added allow domains to setup an EC2 for Let's Encrypt (needed in case you put the EC2 in ROSA VPC)
+#              - "dl.fedoraproject.org"          # Added to setup EC2 for Let's Encrypt
+#              - "mirrors.fedoraproject.org"     # Added to setup EC2 for Let's Encrypt
+#              - "d2lzkl7pfhq30w.cloudfront.net" # Added to setup EC2 for Let's Encrypt
+#              - "epel.mirror.angkasa.id"        # Added to setup EC2 for Let's Encrypt
+#              - "ftp.riken.jp"                  # Added to setup EC2 for Let's Encrypt
+#              - "ftp.iij.ad.jp"                 # Added to setup EC2 for Let's Encrypt
+#              - "supporters.eff.org"            # Added to setup EC2 for Let's Encrypt
+# 2023/01/14 yuhkih Removed unnecessary export variables like  private-subnet-id-rosa / private-rtb-id-rosa which don't have serial numbers
+# 2023/01/20 yuhkih Removed SSM bastion related resources because they are now included in rosa-ssm-bastion.yaml
+# 2023/01/23 yuhkih Added "cloud.redhat.com" to FW # For cluster upgrading
+# 2023/02/06 yuhkih Added a New FW Rule Group for RHOAM SMTP servers as a draft (If it's ok, transplant this into mz yaml)
+#                   Changed the IP set name from SPLUNK_NET to SPLUNK_SERVERS. Apply SPLUNK_SERVERS to the rulegroup (before this, it was ANY. The list was not actually used)
+#                   Changed the name of "{EnvironmentName}-SplunkAllow-RuleGroup" to "{EnvironmentName}-ROSA-IP-Allow-RuleGroup"
+#                            Replace "SplunkAllowStatefulRuleGroup" with "ROSAIpAllowStatefulRuleGroup"
+#                   Changed the name of "{EnvironmentName}-DomainAllow-RuleGroup" to "{EnvironmentName}-ROSA-Domain-Allow-RuleGroup" 
+#                           Replace  "DomainAllowStatefulRuleGroup" with "ROSADomainAllowStatefulRuleGroup"
+#                   Create "RHOAMDomainAllowStatefulRuleGroup". Moved RHOAM related domain to this group.
+# 2023/02/06 yuhkih moved following domains from RHOAM to ROSA.
+#                   - "aws.amazon.com"                    # RHOAM  =>  # ROSA installation (blocked logged but seems fine from co results and console)
+#                   - "www.redhat.com"                    # RHOAM  =>  # ROSA installation (blocked logged but seems fine from co results and console)
+#                   - "www.okd.io"                        # RHOAM  =>  # ROSA installation (blocked logged but seems fine from co results and console)
+#                   - "access.redhat.com"                 # RHOAM  =>  # ROSA installation (blocked logged but seems fine from co results and console)
+#                   - "observatorium.api.openshift.com"   # RHOAM  =>  # ROSA installation (blocked logged but seems fine from co results and console)
+# 2023/02/06 yuhkih added following domain to RHOAM FW rule
+#                    - "download.geonames.org"             # RHOAM Graphana ?
+#                    - ".ocp4.work"                        # RHOAM custom domain (Replace this with your own domain)
+# 2023/02/15 yuhkih fix SPLUNK_NET => SPLUNK_SERVERS
+# 2023/02/15 yuhkih added following firewall settings
+#                   - "pypi.org"                      # Django sample app for AWS ALB
+#                   - "files.pythonhosted.org"        # Django sample app for AWS ALB
+# 2023/02/16 yuhkih based on rosa-PRV_NAT_FW-mz.yaml Removed Firewall part for simpler and faster test.
+# 2023/03/07 yuhkih - Add "SubnetTagHeader" parameter for private subnets
+#            yuhkih - sorted paramters
+# 2023/04/04 yuhkih - added -mz suffix to export variables. eg) private-subnet-id1-rosa => private-subnet-id1-rosa-mz
+#                     change default SubnetTagHeader to "mycluster-mz"
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "ROSA sample Multi AZ network with FW"
+
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - 
+        Label:
+          default: "VPC Parameters"
+        Parameters:
+          - VpcCIDR
+          - AvailabilityZone1Selection
+          - Private1CIDR
+          - Natgw1CIDR
+          - AvailabilityZone2Selection
+          - Private2CIDR
+          - Natgw2CIDR
+          - AvailabilityZone3Selection
+          - Private3CIDR
+          - Natgw3CIDR
+      - 
+        Label:
+          default: Label Paramaters
+        Parameters:
+          - EnvironmentName
+          - SubnetTagHeader
+
+Parameters:
+  EnvironmentName:
+    Description: An environment name that is prefixed to resource names  If you create multiple clusters using this template, you need to change this name to avoid name confliction.
+    Type: String
+    Default: "multiaz"
+
+  SubnetTagHeader:
+    Description: Tag header for subnets.
+    Type: String
+    Default: "mycluster-mz"
+
+  VpcCIDR:
+    Description: Please enter the IP range (CIDR notation) for this VPC
+    Type: String
+    Default: "10.0.0.0/16"
+
+  # Network1 Private / NAGTW
+  Private1CIDR:
+    Description: Please enter the IP range (CIDR notation) for Private Netwowrk1
+    Type: String
+    Default: "10.0.1.0/24"
+
+  Natgw1CIDR:
+    Description: Please enter the IP range (CIDR notation) for NATGW Netwowrk1
+    Type: String
+    Default: "10.0.0.0/24"
+
+  # Network2 Private / NATGW
+  Private2CIDR:
+    Description: Please enter the IP range (CIDR notation) for Private Netwowrk2
+    Type: String
+    Default: "10.0.2.0/24"
+
+  Natgw2CIDR:
+    Description: Please enter the IP range (CIDR notation) for NATGW Netwowrk2
+    Type: String
+    Default: "10.0.3.0/24"
+
+  # Network3 Private / NATGW
+  Private3CIDR:
+    Description: Please enter the IP range (CIDR notation) for Private Netwowrk3
+    Type: String
+    Default: "10.0.4.0/24"
+
+  Natgw3CIDR:
+    Description: Please enter the IP range (CIDR notation) for NATGW Netwowrk3
+    Type: String
+    Default: "10.0.5.0/24"
+
+  AvailabilityZone1Selection:
+    Description: Availability Zone 1
+    Type: AWS::EC2::AvailabilityZone::Name
+    Default: ap-northeast-1a
+
+  AvailabilityZone2Selection:
+    Description: Availability Zone 2
+    Type: AWS::EC2::AvailabilityZone::Name
+    Default: ap-northeast-1c
+
+  AvailabilityZone3Selection:
+    Description: Availability Zone 3
+    Type: AWS::EC2::AvailabilityZone::Name
+    Default: ap-northeast-1d
+
+Resources:
+  # VPC:
+  VPCA:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-VPC
+
+  # Internet Gateway:
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-IGW
+
+  AttachInternetGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPCA
+      InternetGatewayId: !Ref InternetGateway
+
+  # NAT Gateway:
+  NatGw1Eip:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NatGw2Eip:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NatGw3Eip:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NatGw1:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGw1Eip.AllocationId
+      SubnetId: !Ref NatgwSubnet1
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-NATGWA
+
+  NatGw2:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGw2Eip.AllocationId
+      SubnetId: !Ref NatgwSubnet2
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-NATGWB
+
+  NatGw3:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGw3Eip.AllocationId
+      SubnetId: !Ref NatgwSubnet3
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-NATGWC
+
+  # Private Subnets for Test Instances:
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPCA
+      CidrBlock: !Ref Private1CIDR
+      AvailabilityZone:
+        Ref: AvailabilityZone1Selection
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-Private-Subnet1
+        - Key: kubernetes.io/role/internal-elb
+          Value: "true"
+        - Key: SubnetTag
+          Value: !Sub ${SubnetTagHeader}-Private-Subnet1
+
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPCA
+      CidrBlock: !Ref Private2CIDR
+      AvailabilityZone:
+        Ref: AvailabilityZone2Selection
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-Private-Subnet2
+        - Key: kubernetes.io/role/internal-elb
+          Value: "true"
+        - Key: SubnetTag
+          Value: !Sub ${SubnetTagHeader}-Private-Subnet2
+
+  PrivateSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPCA
+      CidrBlock: !Ref Private3CIDR
+      AvailabilityZone:
+        Ref: AvailabilityZone3Selection
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-Private-Subnet3
+        - Key: kubernetes.io/role/internal-elb
+          Value: "true"
+        - Key: SubnetTag
+          Value: !Sub ${SubnetTagHeader}-Private-Subnet3
+
+  # Subnets for NAT GWs:
+  NatgwSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPCA
+      CidrBlock: !Ref Natgw1CIDR
+      AvailabilityZone:
+        Ref: AvailabilityZone1Selection
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-Natgw-Subnet1
+        - Key: SubnetTag
+          Value: !Sub ${SubnetTagHeader}-Public-Subnet1
+
+  NatgwSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPCA
+      CidrBlock: !Ref Natgw2CIDR
+      AvailabilityZone:
+        Ref: AvailabilityZone2Selection
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-Natgw-Subnet2
+        - Key: SubnetTag
+          Value: !Sub ${SubnetTagHeader}-Public-Subnet2
+
+  NatgwSubnet3:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPCA
+      CidrBlock: !Ref Natgw3CIDR
+      AvailabilityZone:
+        Ref: AvailabilityZone3Selection
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-Natgw-Subnet3
+        - Key: SubnetTag
+          Value: !Sub ${SubnetTagHeader}-Public-Subnet3
+
+ 
+
+  # AWS PrivateLink interface endpoint for services:
+  VPCAEndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow instances to get to SSM Systems Manager
+      VpcId: !Ref VPCA
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: !Ref VpcCIDR
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-VpcEnpoint-Sg1
+
+  # Private Route Tables:
+  PrivateRtb1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPCA
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-PrivateRouteTable1
+
+  PrivateRtb1Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRtb1
+      SubnetId: !Ref PrivateSubnet1
+
+  PrivateRtb1DefaultRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId: !Ref NatGw1
+      RouteTableId: !Ref PrivateRtb1
+
+  PrivateRtb2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPCA
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-PrivateRouteTable2
+
+  PrivateRtb2Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRtb2
+      SubnetId: !Ref PrivateSubnet2
+
+  PrivateRtb2DefaultRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId: !Ref NatGw2
+      RouteTableId: !Ref PrivateRtb2
+
+  PrivateRtb3:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPCA
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-PrivateRouteTable3
+
+  PrivateRtb3Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRtb3
+      SubnetId: !Ref PrivateSubnet3
+
+  PrivateRtb3DefaultRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId: !Ref NatGw3
+      RouteTableId: !Ref PrivateRtb3
+
+  # NATGW Route Tables:
+  NatgwRtb1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPCA
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-NatgwRouteTable1
+        - Key: AZ
+          Value:  !Ref AvailabilityZone1Selection
+
+  NatgwRtb1Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref NatgwRtb1
+      SubnetId: !Ref NatgwSubnet1
+
+  NatgwRtb1DefaultRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref NatgwRtb1
+
+
+  NatgwRtb2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPCA
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-NatgwRouteTable2
+        - Key: AZ
+          Value: !Ref AvailabilityZone2Selection
+
+  NatgwRtb2Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref NatgwRtb2
+      SubnetId: !Ref NatgwSubnet2
+
+  NatgwRtb2DefaultRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref NatgwRtb2
+
+
+  NatgwRtb3:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPCA
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-NatgwRouteTable3
+        - Key: AZ
+          Value: !Ref AvailabilityZone3Selection
+
+  NatgwRtb3Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref NatgwRtb3
+      SubnetId: !Ref NatgwSubnet3
+
+  NatgwRtb3DefaultRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref NatgwRtb3
+
+Outputs:
+  MyStacksRegion:
+    Value: !Ref "AWS::Region"
+
+  PrivateSubnetID1:
+    Description: Private Subnet ID1 for ROSA BYOVPC installation
+    Value: !Ref PrivateSubnet1
+
+  PrivateSubnetID2:
+    Description: Private Subnet ID2 for ROSA BYOVPC installation
+    Value: !Ref PrivateSubnet2
+
+  PrivateSubnetID3:
+    Description: Private Subnet ID3 for ROSA BYOVPC installation
+    Value: !Ref PrivateSubnet3
+
+  # The below export variables will be used when you add bastion VPC and connect it through Transit Gateway.
+  RosaVpcCIDR:
+    Value: !Ref VpcCIDR
+    Export:
+      Name: vpc-cidr-rosa-mz
+
+  RosaVpcID:
+    Value: !Ref VPCA
+    Export:
+      Name: vpc-id-rosa-mz
+
+
+
+# add new
+  RosaPrivateSubnetID1:
+    Value: !Ref PrivateSubnet1
+    Export:
+      Name: private-subnet-id1-rosa-mz
+
+  RosaNatGwSubnetID1:
+    Value: !Ref NatgwSubnet1
+    Export:
+      Name: natgw-subnet-id1-rosa-mz
+
+  RosaPrivateRouteTableID1:
+    Value: !Ref PrivateRtb1
+    Export:
+      Name: private-rtb-id1-rosa-mz
+
+  RosaNatGwRouteTableID1:
+    Value: !Ref NatgwRtb1
+    Export:
+      Name: natgw-rtb-id1-rosa-mz
+  
+
+# add new
+  RosaPrivateSubnetID2:
+    Value: !Ref PrivateSubnet2
+    Export:
+      Name: private-subnet-id2-rosa-mz
+
+  RosaNatGwSubnetID2:
+    Value: !Ref NatgwSubnet2
+    Export:
+      Name: natgw-subnet-id2-rosa-mz
+  
+
+  RosaPrivateRouteTableID2:
+    Value: !Ref PrivateRtb2
+    Export:
+      Name: private-rtb-id2-rosa-mz
+
+  RosaNatGwRouteTableID2:
+    Value: !Ref NatgwRtb2
+    Export:
+      Name: natgw-rtb-id2-rosa-mz
+
+
+# add new
+  RosaPrivateSubnetID3:
+    Value: !Ref PrivateSubnet3
+    Export:
+      Name: private-subnet-id3-rosa-mz
+
+  RosaNatGwSubnetID3:
+    Value: !Ref NatgwSubnet3
+    Export:
+      Name: natgw-subnet-id3-rosa-mz
+
+  RosaPrivateRouteTableID3:
+    Value: !Ref PrivateRtb3
+    Export:
+      Name: private-rtb-id3-rosa-mz
+
+  RosaNatGwRouteTableID3:
+    Value: !Ref NatgwRtb3
+    Export:
+      Name: natgw-rtb-id3-rosa-mz

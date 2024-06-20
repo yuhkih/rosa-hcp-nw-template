@@ -1,0 +1,651 @@
+# The following will be deployed with this CF
+# 1. Three subnets for each AZ. (Thins template is for single AZ)
+# 2. AWS firewall deployed with a policy which allow all the domains listed on the ROSA document as prerequistes for egress.
+#        
+# This template will create the following Network Firewall rules
+#
+#    1) singleaz-DomainAllow-RuleGroup  based on ROSA requirments
+#    2) singleaz-SplunkAllow-RuleGroup  based on ROSA requiremnts (Splunk)
+#    3) singleaz-DomainAllow-RuleGroup-For-Application   For test perpose +  RHOAM (based on blocked logs)
+#    4) singleaz-IcmpAlert-RuleGroup    This crates alert when someone uses ICMP ping in VPC.
+#    
+# This deploys following network model
+#   [Private Subnet] => [ NATGW(protected) Subnet] => [ FW Subnet]
+#   The model is based on the following AWS blog post.
+#   https://aws.amazon.com/jp/blogs/networking-and-content-delivery/deployment-models-for-aws-network-firewall/
+# 
+# History 
+# 2023/01/13 yuhkih Remove duplicated Output
+# 2023/01/13 yuhkih add  "catalog.redhat.com" to FW for ?
+# 2023/01/14 yuhkih Added allow domains to setup an EC2 for Let's Encrypt (needed in case you put the EC2 in ROSA VPC)
+#              - "dl.fedoraproject.org"          # Added to setup EC2 for Let's Encrypt
+#              - "mirrors.fedoraproject.org"     # Added to setup EC2 for Let's Encrypt
+#              - "d2lzkl7pfhq30w.cloudfront.net" # Added to setup EC2 for Let's Encrypt
+#              - "epel.mirror.angkasa.id"        # Added to setup EC2 for Let's Encrypt
+#              - "ftp.riken.jp"                  # Added to setup EC2 for Let's Encrypt
+#              - "ftp.iij.ad.jp"                 # Added to setup EC2 for Let's Encrypt
+#              - "supporters.eff.org"            # Added to setup EC2 for Let's Encrypt
+# 2023/01/14 yuhkih Export Fierwall subnet id and route tabled id
+# 2023/01/20 yuhkih Removed SSM bastion related resources because they are now included in rosa-ssm-bastion.yaml (actually already removed but mz version was not. )
+# 2023/01/23 yuhkih Added "cloud.redhat.com" to FW # For cluster upgrading
+# 2023/02/04 yuhkin Added "stats.grafana.org"     # RHOAM ?
+# 2023/02/05 yuhkih Added a New FW Rule Group for RHOAM SMTP servers as a draft (If it's ok, transplant this into mz yaml)
+#                   Changed the IP set name from SPLUNK_NET to SPLUNK_SERVERS. Apply SPLUNK_SERVERS to the rulegroup (before this, it was ANY. The list was not actually used)
+#                   Changed the name of "{EnvironmentName}-SplunkAllow-RuleGroup" to "{EnvironmentName}-ROSA-IP-Allow-RuleGroup"
+#                            Replace "SplunkAllowStatefulRuleGroup" with "ROSAIpAllowStatefulRuleGroup"
+#                   Changed the name of "{EnvironmentName}-DomainAllow-RuleGroup" to "{EnvironmentName}-ROSA-Domain-Allow-RuleGroup" 
+#                           Replace  "DomainAllowStatefulRuleGroup" with "ROSADomainAllowStatefulRuleGroup"
+#                   Create "RHOAMDomainAllowStatefulRuleGroup". Moved RHOAM related domain to this group.
+# 2023/02/06 yuhkih moved following domains from RHOAM to ROSA.
+#                   - "aws.amazon.com"                    # RHOAM  =>  # ROSA installation (blocked logged but seems fine from co results and console)
+#                   - "www.redhat.com"                    # RHOAM  =>  # ROSA installation (blocked logged but seems fine from co results and console)
+#                   - "www.okd.io"                        # RHOAM  =>  # ROSA installation (blocked logged but seems fine from co results and console)
+#                   - "access.redhat.com"                 # RHOAM  =>  # ROSA installation (blocked logged but seems fine from co results and console)
+#                   - "observatorium.api.openshift.com"   # RHOAM  =>  # ROSA installation (blocked logged but seems fine from co results and console)
+# 2023/02/06 yuhkih added following domain to RHOAM FW rule
+#                   - "download.geonames.org"             # RHOAM Graphana ?
+#                   - ".ocp4.work"                        # RHOAM custom domain (Replace this with your own domain)
+# 2023/02/11 yuhkih add ExportVariablePrefix to avoid export variable conflicts
+# 2023/02/15 yuhkih added following firewall settings
+#                   - "pypi.org"                      # Django sample app for AWS ALB
+#                   - "files.pythonhosted.org"        # Django sample app for AWS ALB
+# 2023/03/07 yuhih - Add "SubnetTagHeader" parameter for private subnets so that install script identify the right subment when there are multiple subnets.
+# 2023/03/07 yuhih - Remove ExportVariablePrefix
+# 2023/04/03 yuhkih - Fix SMTP firewall source /destionation mistake.
+# 2023/04/04 yuhkih - reflect the latest official document
+# 2023/04/07 yuhkih - added   DevSpaceDomainAllowStatefulRuleGroup
+# 2024/06/14 yuhkih - fix "error CloudFormation Stack creation failure due to DelayLambda "The runtime parameter of python3.7 is no longer supported...""
+# 2024/06/18 yuhkih - Refresh FW list to align with ROSA HCP (create  ROSAHCPDomainAllowStatefulRuleGroup based on the doc) / Remove RHOAM requirements and other unnecessary FirewallRule for HCP.                                                                  
+
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "ROSA sample Single AZ network with FW"
+
+Metadata:
+  "AWS::CloudFormation::Interface":
+    ParameterGroups:
+      - Label:
+          default: "VPC Parameters"
+        Parameters:
+          - AvailabilityZone1Selection
+          
+Parameters:
+  EnvironmentName:
+    Description: An environment name that is prefixed to resource names. If you create multiple clusters using this template, you need to change this name to avoid name confliction.
+    Type: String
+    Default: "singleaz"
+
+  SubnetTagHeader:
+    Description: Tag header for subnets.
+    Type: String
+    Default: "mycluster"
+
+  VpcCIDR:
+    Description: Please enter the IP range (CIDR notation) for this VPC
+    Type: String
+    Default: "10.0.0.0/16"
+
+  # Private Network
+  Private1CIDR:
+    Description: Please enter the IP range (CIDR notation) for Private Netwowrk1
+    Type: String
+    Default: "10.0.1.0/24"
+
+  # NATGW Network
+  NAT1CIDR:
+    Description: Please enter the IP range (CIDR notation) for Public (NAT) Netwowrk1
+    Type: String
+    Default: "10.0.0.0/24"
+
+  # Firewall (Public) Network
+  FW1CIDR:
+    Description: Please enter the IP range (CIDR notation) for Firewall Netwowrk1
+    Type: String
+    Default: "10.0.16.0/28"
+  
+  AvailabilityZone1Selection:
+    Description: Availability Zone 1
+    Type: AWS::EC2::AvailabilityZone::Name
+    Default: ap-northeast-1a
+
+Resources:
+  # VPC:
+  VPCA:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-VPC
+
+  # Internet Gateway:
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-IGW
+
+  AttachInternetGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPCA
+      InternetGatewayId: !Ref InternetGateway
+
+  # NAT Gateway:
+  NatGw1Eip:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  NatGw1:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGw1Eip.AllocationId
+      SubnetId: !Ref NatgwSubnet1
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-NATGWA
+
+  # Private Subnets for Test Instances:
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPCA
+      CidrBlock: !Ref Private1CIDR
+      AvailabilityZone:
+        Ref: AvailabilityZone1Selection
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-Private-Subnet1
+        - Key: SubnetTag
+          Value: !Sub ${SubnetTagHeader}-Private-Subnet1
+
+  # Subnets for NAT GWs:
+  NatgwSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPCA
+      CidrBlock: !Ref NAT1CIDR
+      AvailabilityZone:
+        Ref: AvailabilityZone1Selection
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-Natgw-Subnet1
+            
+            
+  # Firewall (Public) Subnets for firewall endpoints:
+  FirewallSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPCA
+      CidrBlock: !Ref FW1CIDR
+      AvailabilityZone:
+        Ref: AvailabilityZone1Selection
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-Firewall-Subnet1
+        - Key: kubernetes.io/role/elb
+          Value: "true"
+        - Key: tag-value
+          Value: "my-cluster-public"
+        - Key: SubnetTag
+          Value: !Sub ${SubnetTagHeader}-Public-Subnet1
+
+  # Fn::GetAtt for Firewall do not return VPCE Id in ordered format.
+  # For more details refer to: https://github.com/aws-cloudformation/aws-cloudformation-resource-providers-networkfirewall/issues/15
+  # Until the bug is fixed we have to rely on custom resource to retrieve AZ specific VPCE Id.
+
+  # Lambda Role:
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "AnfwLambdaRole-${AWS::Region}"
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !GetAtt RetrieveVpcIdLogGroup.Arn
+              - Effect: Allow
+                Action:
+                  - network-firewall:DescribeFirewall
+                Resource: "*"
+
+  # Retrieve VpceId Lambda Custom Resource:
+  RetrieveVpcIdLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/${EnvironmentName}-ROSA/OneTimeLambda/RetrieveVpceId-${AWS::Region}"
+      RetentionInDays: 1
+
+  RetrieveVpceId:
+    Type: AWS::Lambda::Function
+    DependsOn: RetrieveVpcIdLogGroup
+    Properties:
+      FunctionName: !Sub RetrieveVpceId-${AWS::StackName}
+      Handler: "index.handler"
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Code:
+        ZipFile: |
+          import boto3
+          import cfnresponse
+          import json
+          import logging
+
+          def handler(event, context):
+              logger = logging.getLogger()
+              logger.setLevel(logging.INFO)
+              responseData = {}
+              responseStatus = cfnresponse.FAILED
+              logger.info('Received event: {}'.format(json.dumps(event)))
+              if event["RequestType"] == "Delete":
+                  responseStatus = cfnresponse.SUCCESS
+                  cfnresponse.send(event, context, responseStatus, responseData)
+              if event["RequestType"] == "Create":
+                  try:
+                      Az1 = event["ResourceProperties"]["Az1"]
+                      FwArn = event["ResourceProperties"]["FwArn"]
+                  except Exception as e:
+                      logger.info('AZ retrieval failure: {}'.format(e))
+                  try:
+                      nfw = boto3.client('network-firewall')
+                  except Exception as e:
+                      logger.info('boto3.client failure: {}'.format(e))
+                  try:
+                      NfwResponse=nfw.describe_firewall(FirewallArn=FwArn)
+                      VpceId1 = NfwResponse['FirewallStatus']['SyncStates'][Az1]['Attachment']['EndpointId']
+
+                  except Exception as e:
+                      logger.info('ec2.describe_firewall failure: {}'.format(e))
+
+                  responseData['FwVpceId1'] = VpceId1
+                  responseStatus = cfnresponse.SUCCESS
+                  cfnresponse.send(event, context, responseStatus, responseData)
+      Runtime: python3.12
+      Timeout: 30
+
+  FirewallVpceIds:
+    Type: Custom::DescribeVpcEndpoints
+    Properties:
+      ServiceToken: !GetAtt RetrieveVpceId.Arn
+      Az1: !Ref AvailabilityZone1Selection
+      FwArn: !Ref VPCAFirewall
+
+  # AWS Network Firewall (1)
+  # ICMP Roule
+  # Inspection Firewall Rule Groups:
+  ICMPAlertStatefulRuleGroup:
+    Type: AWS::NetworkFirewall::RuleGroup
+    Properties:
+      RuleGroupName: !Sub ${EnvironmentName}-IcmpAlert-RuleGroup
+      Type: STATEFUL
+      Capacity: 100
+      RuleGroup:
+        RulesSource:
+          StatefulRules:
+            - Action: ALERT
+              Header:
+                Direction: ANY
+                Protocol: ICMP
+                Destination: ANY
+                Source: ANY
+                DestinationPort: ANY
+                SourcePort: ANY
+              RuleOptions:
+                - Keyword: "sid:1"
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-IcmpAlert-RuleGroup
+
+  # AWS Network Firewall (2)
+  # ROSA domain based FW prerequistes
+  # https://access.redhat.com/documentation/en-us/red_hat_openshift_service_on_aws/4/html/prepare_your_environment/rosa-sts-aws-prereqs#osd-aws-privatelink-firewall-prerequisites_rosa-sts-aws-prereqs
+  # "quay.io" is removed because AWF FW returns error saying that "Targets has duplicate values, parameter: [quay.io]"
+  ROSAHCPDomainAllowStatefulRuleGroup:
+    Type: "AWS::NetworkFirewall::RuleGroup"
+    Properties:
+      RuleGroupName: !Sub ${EnvironmentName}-ROSA-Domain-Allow-RuleGroup
+      Type: STATEFUL
+      Capacity: 100
+      RuleGroup:
+        RuleVariables:
+          IPSets:
+            HOME_NET:
+              Definition:
+                - !Ref VpcCIDR
+        RulesSource:
+          RulesSourceList:
+            TargetTypes:
+              - HTTP_HOST
+              - TLS_SNI
+            Targets:
+              # 1.Allowlist the following URLs that are used to install and download packages and tools:
+              - "quay.io"
+              - "cdn01.quay.io"
+              - "cdn02.quay.io"
+              - "cdn03.quay.io"
+              - "quayio-production-s3.s3.amazonaws.com"
+              - "registry.redhat.io"
+              - "registry.access.redhat.com"
+              - "access.redhat.com"
+              - "mirror.openshift.com"
+              # 2. Allowlist the following telemetry URLs:
+              - "infogw.api.openshift.com"
+              - "console.redhat.com"
+              - "sso.redhat.com"
+              # 3.Allowlist the following Amazon Web Services (AWS) API URls:
+              - "sts.ap-northeast-1.amazonaws.com"
+              - "sts.ap-northeast-3.amazonaws.com"
+              - "sts.amazonaws.com"
+              # 4.Allowlist the following URLs for optional third-party content:
+              - "registry.connect.redhat.com"
+              - "rhc4tp-prod-z8cxf-image-registry-us-east-1-evenkyleffocxqvofrk.s3.dualstack.us-east-1.amazonaws.com"
+              - "oso-rhc4tp-docker-registry.s3-us-west-2.amazonaws.com"
+              # The following is from AWS Firewall log. Not listed on the doc.  
+              - "api.openshift.com" 
+            GeneratedRulesType: "ALLOWLIST"
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-ROSA-Domain-Allow-RuleGroup
+
+  # AWS Network Firewall (6)
+  # User installed components
+  DomainAllowStatefulRuleGroupForApp:
+    Type: "AWS::NetworkFirewall::RuleGroup"
+    Properties:
+      RuleGroupName: !Sub ${EnvironmentName}-DomainAllow-RuleGroup-For-Application
+      Type: STATEFUL
+      Capacity: 100
+      RuleGroup:
+        RuleVariables:
+          IPSets:
+            HOME_NET:
+              Definition:
+                - !Ref VpcCIDR
+        RulesSource:
+          RulesSourceList:
+            TargetTypes:
+              - HTTP_HOST
+              - TLS_SNI
+            Targets:
+                - "dummy.example.com" # empty list is not allowed. So, this is dummy
+                # The followings are for using containers hosted on docker.io registry
+                - "docker.io"                         # RHOAM? and General containers hosted on docker.io
+                - "registry-1.docker.io"              # RHOAM? and General containers hosted on docker.io
+                - "auth.docker.io"                    # RHOAM? and General containers hosted on docker.io
+                - "production.cloudflare.docker.com"  # RHOAM? and General containers hosted on docker.io
+                # The followings are needed for GitHub IdP integration
+                - "github.com"     # GitHub IdP integraion (1)
+                - "api.github.com" # GitHub IdP integraion (2)
+                # The followings are needed to get Let's Encrypt certifciate using cert-bot. Probably will be needed for renewal (not sure how to test this)
+                - "acme-v02.api.letsencrypt.org"  # to setup EC2 for Let's Encrypt
+                - "acme-staging-v02.api.letsencrypt.org" # to setup EC2 for Let's Encrypt
+                # I am not sure about  this but it seems to be related to Amazon Linux (Probably HTTP Proxy installation)
+                - "amazonlinux-2-repos-ap-northeast-1.s3.dualstack.ap-northeast-1.amazonaws.com" 
+              # The followings are for instally Let's Encrypt modules on EC2 bastion server.
+              # If everything is installed already, these would not be needed except for updating the mddules.
+              # - "dl.fedoraproject.org"          # Added to setup EC2 for Let's Encrypt
+              # - "mirrors.fedoraproject.org"     # Added to setup EC2 for Let's Encrypt
+              # - "d2lzkl7pfhq30w.cloudfront.net" # Added to setup EC2 for Let's Encrypt
+              # - "epel.mirror.angkasa.id"        # Added to setup EC2 for Let's Encrypt
+              # - "ftp.riken.jp"                  # Added to setup EC2 for Let's Encrypt
+              # - "ftp.iij.ad.jp"                 # Added to setup EC2 for Let's Encrypt
+              # - "supporters.eff.org"            # Added to setup EC2 for Let's Encrypt
+              # Uknown
+              # - ".openshiftapps.com"            # For public cluster installation. You can narrow down this domain after installation complete to like ".apps.<cluster name>.<random>.<random>.openshiftapps.com"
+            GeneratedRulesType: "ALLOWLIST"
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-DomainAllow-RuleGroup-For-Application
+  # AWS Network Firewall (7)
+  # DevSpace
+  DevSpaceDomainAllowStatefulRuleGroup:
+    Type: "AWS::NetworkFirewall::RuleGroup"
+    Properties:
+      RuleGroupName: !Sub ${EnvironmentName}-DevSpace-Domain-Allow-RuleGroup
+      Type: STATEFUL
+      Capacity: 100
+      RuleGroup:
+        RuleVariables:
+          IPSets:
+            HOME_NET:
+              Definition:
+                - !Ref VpcCIDR
+        RulesSource:
+          RulesSourceList:
+            TargetTypes:
+              - HTTP_HOST
+              - TLS_SNI
+            Targets:
+              # Not official based on Experiment / DevSpace plugin
+              - "openvsxorg.blob.core.windows.net"
+              - "go.microsoft.com"
+              - "login.live.com"
+              - "cdn.segment.com"
+              - "nav-edge.smartscreen.microsoft.com"
+              - "mirrors.fedoraproject.org"
+            GeneratedRulesType: "ALLOWLIST"
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-DevSpace-Domain-Allow-RuleGroup
+
+
+  # VPCA Firewall Policy:
+  EgressFirewallPolicy:
+    Type: AWS::NetworkFirewall::FirewallPolicy
+    Properties:
+      FirewallPolicyName: !Sub ${EnvironmentName}-InspectionFirewall-Policy
+      FirewallPolicy:
+        StatelessDefaultActions:
+          - "aws:forward_to_sfe"
+        StatelessFragmentDefaultActions:
+          - "aws:forward_to_sfe"
+        StatefulRuleGroupReferences:
+          - ResourceArn: !Ref ICMPAlertStatefulRuleGroup
+          - ResourceArn: !Ref ROSAHCPDomainAllowStatefulRuleGroup
+          - ResourceArn: !Ref DomainAllowStatefulRuleGroupForApp
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-InspectionFirewall-Policy
+
+  #VPCA Firewall Summary
+  VPCAFirewall:
+    DependsOn:
+      [
+        ICMPAlertStatefulRuleGroup,
+        ROSAHCPDomainAllowStatefulRuleGroup,
+        DomainAllowStatefulRuleGroupForApp
+      ]
+    Type: AWS::NetworkFirewall::Firewall
+    Properties:
+      FirewallName: !Sub ${EnvironmentName}-InspectionFirewall
+      FirewallPolicyArn: !Ref EgressFirewallPolicy
+      VpcId: !Ref VPCA
+      SubnetMappings:
+        - SubnetId: !Ref FirewallSubnet1
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-InspectionFirewall
+
+  #VPCA Firewall Logging:
+  VPCAFirewallLogFlowGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/${EnvironmentName}-ROSA/Flow"
+
+  VPCAFirewallLogAlertGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub "/${EnvironmentName}-ROSA/Alert"
+
+  VPCAFirewallLog:
+    Type: AWS::NetworkFirewall::LoggingConfiguration
+    Properties:
+      FirewallArn: !Ref VPCAFirewall
+      LoggingConfiguration:
+        LogDestinationConfigs:
+          - LogType: FLOW
+            LogDestinationType: CloudWatchLogs
+            LogDestination:
+              logGroup: !Ref VPCAFirewallLogFlowGroup
+          - LogType: ALERT
+            LogDestinationType: CloudWatchLogs
+            LogDestination:
+              logGroup: !Ref VPCAFirewallLogAlertGroup
+
+  # Private Route Tables:
+  PrivateRtb1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPCA
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-PrivateRouteTable1
+
+  PrivateRtb1Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRtb1
+      SubnetId: !Ref PrivateSubnet1
+
+  PrivateRtb1DefaultRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      NatGatewayId: !Ref NatGw1
+      RouteTableId: !Ref PrivateRtb1
+
+  # NATGW Route Tables:
+  NatgwRtb1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPCA
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-NatgwRouteTable1
+
+  NatgwRtb1Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref NatgwRtb1
+      SubnetId: !Ref NatgwSubnet1
+
+  NatgwRtb1DefaultRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCAFirewall
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      VpcEndpointId: !GetAtt FirewallVpceIds.FwVpceId1
+      RouteTableId: !Ref NatgwRtb1
+
+  # Firewall Route Tables:
+  FirewallRtb1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPCA
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-FirewallRouteTable1
+
+  FirewallRtb1Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref FirewallRtb1
+      SubnetId: !Ref FirewallSubnet1
+
+  FirewallRtb1DefaultRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      DestinationCidrBlock: "0.0.0.0/0"
+      GatewayId: !Ref InternetGateway
+      RouteTableId: !Ref FirewallRtb1
+
+  # Ingress Route Table:
+  IngressRtb:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPCA
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-IngressRouteTable
+
+  IngressRtbAssociation:
+    Type: AWS::EC2::GatewayRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref IngressRtb
+      GatewayId: !Ref InternetGateway
+
+  IngressRtbPublicSubnet1Route:
+    Type: AWS::EC2::Route
+    DependsOn: VPCAFirewall
+    Properties:
+      DestinationCidrBlock: !Ref NAT1CIDR
+      VpcEndpointId: !GetAtt FirewallVpceIds.FwVpceId1
+      RouteTableId: !Ref IngressRtb
+
+Outputs:
+  MyStacksRegion:
+    Value: !Ref "AWS::Region"
+
+  RosaVpcCIDR:
+    Value: !Ref VpcCIDR
+    Export:
+      Name: vpc-cidr-rosa
+
+  RosaVpcID:
+    Value: !Ref VPCA
+    Export:
+      Name: vpc-id-rosa
+
+  RosaPrivateSubnetID1:
+    Value: !Ref PrivateSubnet1
+    Export:
+      Name: private-subnet-id1-rosa
+
+  RosaNatGwSubnetID1:
+    Value: !Ref NatgwSubnet1
+    Export:
+      Name: natgw-subnet-id1-rosa
+  
+  RosaFwSubnetID1:
+    Value: !Ref FirewallSubnet1
+    Export:
+      Name: fw-subnet-id1-rosa
+
+  RosaPrivateRouteTableID1:
+    Value: !Ref PrivateRtb1
+    Export:
+      Name: private-rtb-id1-rosa
+
+  RosaNatGwRouteTableID1:
+    Value: !Ref NatgwRtb1
+    Export:
+      Name: natgw-rtb-id1-rosa
+      
+  RosaFwRouteTableID1:
+    Value: !Ref FirewallRtb1
+    Export:
+      Name: fw-rtb-id1-rosa
