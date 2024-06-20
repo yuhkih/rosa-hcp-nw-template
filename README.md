@@ -121,8 +121,6 @@ export REGION=ap-northeast-1
 OpenShift では Cluster Wide Proxy と呼ばれていますが、OpenShift Cluster からの Egress を HTTP Proxy に飛ばす機能があります。
 `rosa-ssm-bastion-sz.yaml` を CloudFormation で適用する事で ROSA Cluster と同じ Private Network に HTTP Proxy をデプロイします。
 
-この HTTP Proxy は、SSM で AWS Console 上からアクセスできます。
-
 CLI の場合は、以下のコマンドを実行します。
 
 ```
@@ -135,7 +133,9 @@ HTTP/HTTPSの Egress アクセスの許可は、HTTP Proxy の proxy.conf で行
 
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/c7cbdf10-8841-45a9-97cb-b14caddfa69b)
 
-Proxy Server の IPアドレスは以下のコマンドで取得できます。
+この HTTP Proxy は、SSM で AWS Console 上からアクセスできます。
+
+作成された Proxy Server の IPアドレスは以下のコマンドで取得できます。
 
 ```
 export PROXY_IP=`aws ec2 describe-instances | jq '.Reservations[].Instances[] | select(.Tags[].Value =="ssm-bastion-BastionInstance1") | .PrivateIpAddress'| sed 's/"//g'`
