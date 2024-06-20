@@ -369,7 +369,7 @@ Firewall のログは、「CloudWatch」の「ロググループ」から確認�
 ROSA HCP Cluster の削除
 
 ```
-rosa delete cluster -c $CLUSTER_NAME
+rosa delete cluster -c $CLUSTER_NAME -y
 ```
 
 Operator Role と OIDC Config の削除 
