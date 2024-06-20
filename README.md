@@ -350,7 +350,7 @@ SSHの鍵は CloudFormation で Bastionがデプロイされた時に AWS 上に
 
 この環境では、アウトバウンドのトラフィックは、AWS Network Firewall を通過するように構成されています。
 
-「VPC」=> 「Network Firewall: ファイアウォールポリシー」=> 「singleaz-InspectionFirewall-Policy」のような名前の `Firewall Policy` が設定されていて、以下のような 「ステートフルルールグループ」があらかじめ作成されています。
+「VPC」=> 「Network Firewall: ファイアウォールポリシー」=> 「singleaz-InspectionFirewall-Policy」のような名前の `Firewall Policy` が設定されていて、以下のような 「ステートフルルールグループ」のサンプルがあらかじめ作成されています。(いろいろ書き替えているので、時期によって内容が異なる可能性があります）
 
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/a0293704-4ff5-4cbe-86b1-ba08c959d7b5)
 
