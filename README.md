@@ -161,6 +161,12 @@ echo $CLUSTER_NAME
 echo $REGION
 ```
 
+HTTP Proxy を設置した場合は以下も確認してください
+
+```
+echo $PROXY_IP
+```
+
 上記の変数のセットが確認できたら、以下の手順書に進み Private Cluster をインストールします。
 
 [こちらの](https://yuhkih.github.io/mcs-docs/docs/rosa-hcp/create-delete/rosa-hcp-enable/)の 3～5の1 までの手順を実行します。
