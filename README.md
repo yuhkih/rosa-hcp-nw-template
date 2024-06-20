@@ -1,7 +1,6 @@
 # はじめに
 
-このリポジトリーの CloudFromation を使うと、AWS VPC 環境と、AWS Network Firewall が構成された状態でデプロイされます。
-
+このリポジトリーの CloudFromation は、ROSA 環境でのネットワークトラフィックを観察するために作られたものです。
 デプロイされた環境を使う事で、ROSA HCP Cluster を Private Cluster として作成した時に、どのような通信が Egress として発生するかが確認できます。
 
 
