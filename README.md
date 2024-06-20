@@ -177,7 +177,7 @@ echo $PROXY_IP
 rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS -i --private-link -y -m auto
 ```
 
-HTTP Proxy を設置する場合は、上記の代わりに以下を実行してください。
+HTTP Proxy を設置した場合は、**手順の 5.1 で、上記の代わりに以下を実行してください。**
 
 ```
 rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS -i --private-link -y -m auto --http-proxy "http://$PROXY_IP:8888" --https-proxy "http://$PROXY_IP:8888"
