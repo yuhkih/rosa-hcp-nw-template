@@ -242,9 +242,10 @@ Default の状態では、Security Group の設定により、Cluster のある 
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/7b7af50d-2437-4023-b302-924592aaaaeb)
 
 「VPC ダッシュボード」 ＝＞「エンドポイント」の画面に行きます。
-`Interface` タイプの 「VPC エンドポイントID」 をクリックします。(Gatewayタイプは、AWS Firewall の vpce でこの環境独自のものです)
+`Interface` タイプの 「VPC エンドポイントID」 で、`サービス名` が 「com.amazonaws.vpce.ap-northeast-1.vpce-svc-<ランダム>」の名前になっているものをクリックします。(Gatewayタイプは、AWS Firewall の vpc endpoint で、それ以外は踏み台の Session Manager で必要 Endpointです。)
 
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/84730fab-fe97-4614-a4be-7ee57325f2f6)
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/9bf433ad-d52f-4734-9035-d64f0bcc50b1)
+
 
 「セキュリティグループ」タブから「グループＩＤ」をクリックします。
 
