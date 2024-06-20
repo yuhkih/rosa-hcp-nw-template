@@ -304,7 +304,7 @@ OpenShift では Cluster Wide Proxy と呼ばれていますが、OpenShift Clus
 CLI の場合は、以下のコマンドを実行します。
 
 ```
-aws cloudformation deploy --template-file bastion-vpc-and-transit-gw-sz.yaml --stack-name ssmbastion
+aws cloudformation deploy --template-file rosa-ssm-bastion-sz.yaml --stack-name ssmbastion
 ```
 
 この CloudFormation を使うと以下の図中の Proxy Server が作成されます。この Proxy Server は HTTP 8888 port で Listen します。ROSAがこの Proxy を使用するには別途 ROSA 側の設定が必要です。
