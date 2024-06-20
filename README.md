@@ -145,6 +145,12 @@ export PROXY_IP=`aws ec2 describe-instances | jq '.Reservations[].Instances[] | 
 
 この $PROXY_IP の値は、ROSA Cluster のインストール時に使用します。
 
+HTTP Proxy (Cluster Wide Proxy) のログは、EC2インスタンスにセッションマネージャー経由でアクセス後、以下のコマンドで確認できます。
+
+```
+tail -f /var/log/httpd/proxy_log
+```
+
 
 # ROSA HCP Cluster の install
 
