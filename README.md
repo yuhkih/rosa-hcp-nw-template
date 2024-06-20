@@ -116,8 +116,41 @@ AWS Region 名の変数をセットします。
 ```
 export REGION=ap-northeast-1
 ```
+# HTTP Proxy の設置
 
-## ROSA HCP Cluster の install
+OpenShift では Cluster Wide Proxy と呼ばれていますが、OpenShift Cluster からの Egress を HTTP Proxy に飛ばす機能があります。
+`rosa-ssm-bastion-sz.yaml` を CloudFormation で適用する事で ROSA Cluster と同じ Private Network に HTTP Proxy をデプロイします。
+
+この HTTP Proxy は、SSM で AWS Console 上からアクセスできます。
+
+CLI の場合は、以下のコマンドを実行します。
+
+```
+aws cloudformation deploy --template-file rosa-ssm-bastion-sz.yaml --stack-name ssmbastion --capabilities CAPABILITY
+_NAMED_IAM
+```
+
+この CloudFormation を使うと以下の図中の Proxy Server が作成されます。この Proxy Server は HTTP 8888 port で Listen します。ROSAがこの Proxy を使用するには別途 ROSA 側の設定が必要です。
+HTTP/HTTPSの Egress アクセスの許可は、HTTP Proxy の proxy.conf で行えるので、AWS Firewall を使う必要はありません。一方で、AWS Firewall では、HTTP Proxy を通過しない Egress トラフィックを検知する事ができます。
+
+![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/fed61bf5-2a58-4b95-9f1f-bd906ac47603)
+
+Proxy Server の IPアドレスは以下のコマンドで取得できます。
+
+```
+export PROXY_IP=`aws ec2 describe-instances | jq '.Reservations[].Instances[] | select(.Tags[].Value =="ssm-bastion-BastionInstance1") | .PrivateIpAddress'| sed 's/"//g'`
+```
+
+この $PROXY_IP の値を、ROSA Cluster にセットして上げる必要があります。
+
+Cluster 作成時に指定する場合は、以下の例のように指定します。
+
+```
+rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS -i --private-link -y -m auto --http-proxy "http://$PROXY_IP:8888" --https-proxy "http://$PROXY_IP:8888"
+```
+
+
+# ROSA HCP Cluster の install
 
 以下の変数がセットされている事を今一度、確認します。
 
@@ -294,39 +327,6 @@ SSHの鍵は CloudFormation で Bastionがデプロイされた時に AWS 上に
 Firewall のログは、「CloudWatch」の「ロググループ」から確認できます。
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/6fcc272c-a8ce-4277-8ab7-ee852b1682a8)
 
-
-# HTTP Proxy を設置してみる
-
-OpenShift では Cluster Wide Proxy と呼ばれていますが、OpenShift Cluster からの Egress を HTTP Proxy に飛ばす機能があります。
-`rosa-ssm-bastion-sz.yaml` を CloudFormation で適用する事で ROSA Cluster と同じ Private Network に HTTP Proxy をデプロイします。
-
-この HTTP Proxy は、SSM で AWS Console 上からアクセスできます。
-
-CLI の場合は、以下のコマンドを実行します。
-
-```
-aws cloudformation deploy --template-file rosa-ssm-bastion-sz.yaml --stack-name ssmbastion --capabilities CAPABILITY
-_NAMED_IAM
-```
-
-この CloudFormation を使うと以下の図中の Proxy Server が作成されます。この Proxy Server は HTTP 8888 port で Listen します。ROSAがこの Proxy を使用するには別途 ROSA 側の設定が必要です。
-HTTP/HTTPSの Egress アクセスの許可は、HTTP Proxy の proxy.conf で行えるので、AWS Firewall を使う必要はありません。一方で、AWS Firewall では、HTTP Proxy を通過しない Egress トラフィックを検知する事ができます。
-
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/fed61bf5-2a58-4b95-9f1f-bd906ac47603)
-
-Proxy Server の IPアドレスは以下のコマンドで取得できます。
-
-```
-export PROXY_IP=`aws ec2 describe-instances | jq '.Reservations[].Instances[] | select(.Tags[].Value =="ssm-bastion-BastionInstance1") | .PrivateIpAddress'| sed 's/"//g'`
-```
-
-この $PROXY_IP の値を、ROSA Cluster にセットして上げる必要があります。
-
-Cluster 作成時に指定する場合は、以下の例のように指定します。
-
-```
-rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS -i --private-link -y -m auto --http-proxy "http://$PROXY_IP:8888" --https-proxy "http://$PROXY_IP:8888"
-```
 
 
 
