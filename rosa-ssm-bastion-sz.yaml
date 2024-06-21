@@ -15,6 +15,7 @@
 # 2023/01/15 yuhkih add Let's Encrypt module installation
 # 2023/03/01 yuhkih changed to create Endpoints in Private Subnet from Natgateway subnet
 # 2024/06/19 yuhkih loosen Security Group to accept all inbound/outbound traffic. Install proxy server in bastion.
+# 2024/06/21 yuhkih re-added Let's Encrypt module installation 
 
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "Add SSM bastion to specified VPC"
@@ -176,8 +177,15 @@ Resources:
           oc version  >> /tmp/ec2-install.log
           sudo yum install -y git
           git version >> /tmp/ec2-install.log
+          echo "##### install jq #####" >> /tmp/ec2-install.log
           sudo yum install -y jq
-          echo "# install proxy server" >> /tmp/ec2-install.log
+          echo "##### install Let's Encrypt related tools #####" >> /tmp/ec2-install.log
+          echo "install Let's Encrypt modules" >> /tmp/ec2-install.log
+          sudo wget -r --no-parent -A 'epel-release-*.rpm' https://dl.fedoraproject.org/pub/epel/7/x86_64/Packages/e/
+          sudo rpm -Uvh dl.fedoraproject.org/pub/epel/7/x86_64/Packages/e/epel-release-*.rpm
+          sudo amazon-linux-extras install epel -y
+          sudo yum install -y certbot python2-certbot-apache 
+          echo "##### install proxy server #####" >> /tmp/ec2-install.log
           yum update -y
           yum install -y httpd
           tee /etc/httpd/conf.d/proxy.conf <<EOF
@@ -198,7 +206,7 @@ Resources:
           sudo chmod 755 /var/log/httpd
           systemctl enable httpd
           systemctl start httpd
-          echo "# install proxy server completed" >> /tmp/ec2-install.log
+          echo "##### install proxy server completed ######" >> /tmp/ec2-install.log
 # ------------------------------------------------------
 # Out put
 

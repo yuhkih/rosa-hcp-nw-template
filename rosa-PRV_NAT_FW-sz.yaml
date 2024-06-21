@@ -56,6 +56,7 @@
 # 2023/04/07 yuhkih - added   DevSpaceDomainAllowStatefulRuleGroup
 # 2024/06/14 yuhkih - fix "error CloudFormation Stack creation failure due to DelayLambda "The runtime parameter of python3.7 is no longer supported...""
 # 2024/06/18 yuhkih - Refresh FW list to align with ROSA HCP (create  ROSAHCPDomainAllowStatefulRuleGroup based on the doc) / Remove RHOAM requirements and other unnecessary FirewallRule for HCP.                                                                  
+# 2024/06/21 yuhkih - update Let's encrypt firewall list based on test
 
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "ROSA sample Single AZ network with FW"
@@ -403,19 +404,21 @@ Resources:
                 # The followings are needed to get Let's Encrypt certifciate using cert-bot. Probably will be needed for renewal (not sure how to test this)
                 - "acme-v02.api.letsencrypt.org"  # to setup EC2 for Let's Encrypt
                 - "acme-staging-v02.api.letsencrypt.org" # to setup EC2 for Let's Encrypt
-                # I am not sure about  this but it seems to be related to Amazon Linux (Probably HTTP Proxy installation)
+                # yum update requires following
                 - "amazonlinux-2-repos-ap-northeast-1.s3.dualstack.ap-northeast-1.amazonaws.com" 
-              # The followings are for instally Let's Encrypt modules on EC2 bastion server.
-              # If everything is installed already, these would not be needed except for updating the mddules.
-              # - "dl.fedoraproject.org"          # Added to setup EC2 for Let's Encrypt
-              # - "mirrors.fedoraproject.org"     # Added to setup EC2 for Let's Encrypt
-              # - "d2lzkl7pfhq30w.cloudfront.net" # Added to setup EC2 for Let's Encrypt
-              # - "epel.mirror.angkasa.id"        # Added to setup EC2 for Let's Encrypt
-              # - "ftp.riken.jp"                  # Added to setup EC2 for Let's Encrypt
-              # - "ftp.iij.ad.jp"                 # Added to setup EC2 for Let's Encrypt
-              # - "supporters.eff.org"            # Added to setup EC2 for Let's Encrypt
+                # The followings are to install Let's Encrypt modules on EC2 bastion server.
+                # If everything is installed already, these would not be needed except for updating the mddules.
+                - "dl.fedoraproject.org"          # Added to setup EC2 for Let's Encrypt
+                - "mirrors.fedoraproject.org"     # Added to setup EC2 for Let's Encrypt
+                - "d2lzkl7pfhq30w.cloudfront.net" # Added to setup EC2 for Let's Encrypt
+                - "epel.mirror.angkasa.id"        # Added to setup EC2 for Let's Encrypt
+                - "ftp.riken.jp"                  # Added to setup EC2 for Let's Encrypt
+                - "ftp.iij.ad.jp"                 # Added to setup EC2 for Let's Encrypt
+                - "ftp.jaist.ac.jp"               # Added to setup EC2 for Let's Encrypt
+                - "ftp.yz.yamagata-u.ac.jp"       # Added to setup EC2 for Let's Encrypt
+                - "supporters.eff.org"            # Added to setup EC2 for Let's Encrypt
               # Uknown
-              # - ".openshiftapps.com"            # For public cluster installation. You can narrow down this domain after installation complete to like ".apps.<cluster name>.<random>.<random>.openshiftapps.com"
+              # - ".openshiftapps.com"            # For public cluster installation. You could narrow down this domain to more granular subdomain after installation complete to like ".apps.<cluster name>.<random>.<random>.openshiftapps.com"
             GeneratedRulesType: "ALLOWLIST"
       Tags:
         - Key: Name
