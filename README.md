@@ -118,7 +118,7 @@ export CLUSTER_NAME=myhcpcluster
 ```
 export REGION=ap-northeast-1
 ```
-# HTTP Proxy の設置 (Optional) 
+# 踏み台 兼 HTTP Proxy の設置
 
 OpenShift では Cluster Wide Proxy と呼ばれていますが、OpenShift Cluster からの Egress を HTTP Proxy に飛ばす機能があります。
 `rosa-ssm-bastion-sz.yaml` を CloudFormation で適用する事で ROSA Cluster と同じ Private Network に HTTP Proxy をデプロイします。
@@ -184,18 +184,19 @@ echo $PROXY_IP
 rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS -i --private-link -y -m auto
 ```
 
-HTTP Proxy を設置した場合は、**手順の 5.1 で、上記の代わりに以下を実行してください。**
+HTTP Proxy を通したい場合は、**手順の 5.1 で、上記の代わりに以下を実行してください。**
 
 ```
 rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS -i --private-link -y -m auto --http-proxy "http://$PROXY_IP:8888" --https-proxy "http://$PROXY_IP:8888"
 ```
 
 
-# 踏み台用 VPC / Transit Gateway と踏み台のデプロイ
+# ブラウザアクセス用 VPC / Transit Gateway と、第二の踏み台のデプロイ (Optional) 
 
-当初は SSM を有効にした EC2 インスタンスを ROSA VPC 内にデプロイして踏み台としていたのですが、AWS Console を通した操作だと、どうも操作性がよくないため、通常のターミナルアクセスができるように別の VPCに踏み台をデプロイしています。
+当初は SSM を有効にした EC2 インスタンスを ROSA VPC 内にデプロイして踏み台としていたのですが、ブラウザで OpenShift コンソールにアクセスしたくなり、専用の踏み台をデプロイする事にしました。
+また、AWS Console を通した操作だと、どうも操作性がよくないため、通常のターミナルアクセスも欲しいと思ったのが、この追加の VPC環境の設置の動機です。
 
-また、これによりブラウザから Private Network 内の ROSAクラスターにアクセスできるようになります。
+踏み台は、別の VPC に作成され、Transit Gateway で Cluster のある VPC に接続されます。
 
 ## CloudFormation テンプレートの実行 
 
