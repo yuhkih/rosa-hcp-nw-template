@@ -95,7 +95,7 @@ ROSA の PrivateLink クラスターを Private Subnet に作成した場合、L
 
 ## Subnetid の変数へのセット
 
-サブネットIDを変数にセットします。
+後続の手順で使うために、サブネットIDを変数にセットしておきます。
 
 jq コマンドをインストールしている場合は、AWS CLI で以下のように取得できます。
 
@@ -107,13 +107,13 @@ export SUBNET_IDS=`aws ec2 describe-subnets | jq -r '.Subnets[] | [ .CidrBlock, 
 
 ## 変数の準備
 
-Cluster名の変数をセットします。
+後続の手順で使うために、Cluster名の変数をセットしておきます。
 
 ```
 export CLUSTER_NAME=myhcpcluster
 ```
 
-AWS Region 名の変数をセットします。
+後続の手順で使うために、AWS Region 名の変数をセットしておきます。
 
 ```
 export REGION=ap-northeast-1
