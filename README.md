@@ -118,10 +118,14 @@ export CLUSTER_NAME=myhcpcluster
 ```
 export REGION=ap-northeast-1
 ```
-# 踏み台 兼 HTTP Proxy の設置
+# 踏み台サーバー 兼 HTTP Proxy の設置
 
-OpenShift では Cluster Wide Proxy と呼ばれていますが、OpenShift Cluster からの Egress を HTTP Proxy に飛ばす機能があります。
-`rosa-ssm-bastion-sz.yaml` を CloudFormation で適用する事で ROSA Cluster と同じ Private Network に HTTP Proxy をデプロイします。
+Private Network なので、インターネットからアクセスできません。そのため、AWS コンソールからアクセスできる SSMを使用した踏み台を作成します。
+
+また、OpenShift では Cluster Wide Proxy と呼ばれている、OpenShift Cluster からの Egress トラフィックを指定した HTTP Proxy に飛ばす機能があります。
+せっかくなので、踏み台サーバーに HTTP Proxy を設置して実験に使えるようにします。
+
+`rosa-ssm-bastion-sz.yaml` を CloudFormation で適用する事で ROSA Cluster と同じ Private Network に、踏み台サーバー 兼 HTTP Proxy をデプロイします。
 
 CLI の場合は、以下のコマンドを実行します。
 
