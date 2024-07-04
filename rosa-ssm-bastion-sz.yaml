@@ -37,7 +37,7 @@ Parameters:
   LatestAmiId:
     Description: Latest EC2 AMI from Systems Manager Parameter Store
     Type: "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>"
-    Default: "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+    Default: "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64"
 
 Resources:
   # AWS PrivateLink interface endpoint for services:
