@@ -179,12 +179,12 @@ Resources:
           git version >> /tmp/ec2-install.log
           echo "##### install jq #####" >> /tmp/ec2-install.log
           sudo yum install -y jq
-          echo "##### install Let's Encrypt related tools #####" >> /tmp/ec2-install.log
-          echo "install Let's Encrypt modules" >> /tmp/ec2-install.log
-          sudo wget -r --no-parent -A 'epel-release-*.rpm' https://dl.fedoraproject.org/pub/epel/7/x86_64/Packages/e/
-          sudo rpm -Uvh dl.fedoraproject.org/pub/epel/7/x86_64/Packages/e/epel-release-*.rpm
-          sudo amazon-linux-extras install epel -y
-          sudo yum install -y certbot python2-certbot-apache 
+          # echo "##### install Let's Encrypt related tools #####" >> /tmp/ec2-install.log
+          # echo "install Let's Encrypt modules" >> /tmp/ec2-install.log
+          # sudo wget -r --no-parent -A 'epel-release-*.rpm' https://dl.fedoraproject.org/pub/epel/7/x86_64/Packages/e/
+          # sudo rpm -Uvh dl.fedoraproject.org/pub/epel/7/x86_64/Packages/e/epel-release-*.rpm
+          # sudo amazon-linux-extras install epel -y
+          # sudo yum install -y certbot python2-certbot-apache 
           echo "##### install proxy server #####" >> /tmp/ec2-install.log
           yum update -y
           yum install -y httpd
