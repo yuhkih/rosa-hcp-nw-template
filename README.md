@@ -405,13 +405,13 @@ bastion VPC の削除待ち
 aws cloudformation wait stack-delete-complete --stack-name mybastion
 ```
 
-Proxy server の削除
+踏み台 兼 Proxy server の削除
 
 ```
 aws cloudformation delete-stack --stack-name ssmbastion
 ```
 
-Proxy server の削除待ち
+踏み台 兼 Proxy server の削除待ち
 
 ```
 aws cloudformation wait stack-delete-complete --stack-name ssmbastion
