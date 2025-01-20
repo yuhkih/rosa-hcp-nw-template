@@ -180,7 +180,7 @@ echo $PROXY_IP
 
 上記の変数のセットが確認できたら、以下の手順書に進み Private Cluster をインストールします。
 
-[こちらの](https://yuhkih.github.io/mcs-docs/docs/rosa-hcp/create-delete/rosa-hcp-enable/)の 3～5の1 までの手順を実行します。
+[こちらの](https://yuhkih.github.io/mcs-docs/docs/rosa-hcp/create-delete/rosa-hcp-enable/)の 3～5の1 までの手順を実行します。(ROSA Cluster のインストール方法は、この手順の中に埋め込むと複雑になってしまうので外だしにしています）
 
 ここでは Private Cluster を作成するので、`rosa create cluster` の実行時は手順の 5.1 の以下を実行します。
 
