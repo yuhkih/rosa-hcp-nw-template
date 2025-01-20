@@ -118,7 +118,9 @@ export CLUSTER_NAME=myhcpcluster
 ```
 export REGION=ap-northeast-1
 ```
-# 踏み台サーバー 兼 HTTP Proxy の設置 (オプショナル)
+# 踏み台サーバー 兼 HTTP Proxy の設置 (Option1)
+
+この方法は、ROSA Cluster を作成した VPC内に外部からのアクセスをする踏み台を作成する方法です。もう一つの Option として、ROSA Clusterと別の VPC を作成してそこに踏み台を置く方法 (Option2)があります。Option 2 の方が現実の環境に近い状況がシュミレートできます。Option2 を選択したい場合は、こちらの手順を飛ばしても大丈夫です。(Option1 と Option2は両立するので両方実行しても問題ありません）
 
 Private Network なので、インターネットからアクセスできません。そのため、AWS コンソールからアクセスできる SSMを使用した踏み台を作成します。
 
@@ -195,7 +197,9 @@ rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$RE
 ```
 
 
-# ブラウザアクセス用 VPC / Transit Gateway と、第二の踏み台のデプロイ (Optional) 
+# 別 VPC を作成し、別VPCに踏み台をデプロイ (Option2) 
+
+こちらは、踏み台を ROSA Cluster とは別の VPCにデプロイし、Transit Gateway 経由で ROSA Cluster にアクセスする方法です。
 
 当初は SSM を有効にした EC2 インスタンスを ROSA VPC 内にデプロイして踏み台としていたのですが、ブラウザで OpenShift コンソールにアクセスしたくなり、専用の踏み台をデプロイする事にしました。
 また、AWS Console を通した操作だと、どうも操作性がよくないため、通常のターミナルアクセスも欲しいと思ったのが、この追加の VPC環境の設置の動機です。
