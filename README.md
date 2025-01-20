@@ -118,7 +118,7 @@ export CLUSTER_NAME=myhcpcluster
 ```
 export REGION=ap-northeast-1
 ```
-# 踏み台サーバー 兼 HTTP Proxy の設置
+# 踏み台サーバー 兼 HTTP Proxy の設置 (オプショナル)
 
 Private Network なので、インターネットからアクセスできません。そのため、AWS コンソールからアクセスできる SSMを使用した踏み台を作成します。
 
