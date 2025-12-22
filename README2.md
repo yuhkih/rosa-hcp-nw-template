@@ -192,9 +192,6 @@ aws cloudformation deploy --template-file bastion-vpc-and-transit-gw-sz.yaml --s
 
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/23bd3cb3-268f-49d6-a918-8660e6e598c4)
 
-HTTP Proxy を設置した場合は、以下のようになります。
-
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/7b668c31-90c5-46de-b8a0-c51a9e9423a4)
 
 ## Route 53 の設定の編集
 
