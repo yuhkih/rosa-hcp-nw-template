@@ -68,7 +68,7 @@ cd rosa-hcp-nw-template
 
 作業に必要な CloudFormation の Template や、sh 等は `rosa-nw-template` ディレクトリに含まれています。
 
-# ROSA 用のNetwork のデプロイ
+# ROSA 用の Private Network のデプロイ
 
 以下の CloudFormation のテンプレートを使用して、ROSA をインストールするためのネットワークを作成します。
 
@@ -77,7 +77,7 @@ ROSA の Private Cluser (with PrivatreLink) 構成では、ユーザーが自分
 Single AZ の実験環境を作成します。
 
 ```
-rosa-PRV_NAT_FW-sz.yaml
+rosa-PRV-sz.yaml
 ```
 
 を使用して、デプロイ完了まで待ちます。AWS GUIから上記の YAML をインポート可能です。
@@ -85,7 +85,7 @@ rosa-PRV_NAT_FW-sz.yaml
 CLI から CloudFormation を使って実行する場合は以下のようになります。
 
 ```
-aws cloudformation deploy --template-file  rosa-PRV_NAT_FW-sz.yaml --stack-name myROSANetwork --capabilities CAPABILITY_NAMED_IAM
+aws cloudformation deploy --template-file  rosa-PRV-sz.yaml --stack-name myROSANetwork --capabilities CAPABILITY_NAMED_IAM
 ```
 
 実行ログなどは、AWS Console 上から確認した方がわかりやすいかもしれません。
@@ -182,7 +182,7 @@ bastion-vpc-and-transit-gw-sz.yaml
 AWS CLI から bastion VPC を作成するために CloudFormation を実行する場合は以下のようになります。
    
 ```
-aws cloudformation deploy --template-file bastion-vpc-and-transit-gw-sz.yaml --stack-name mybastion --parameter-overrides CreateEC2=true
+aws cloudformation deploy --template-file bastion-vpc-and-transit-gw-sz.yaml --stack-name mybastion --parameter-overrides VPCwithOnlyPrivateSubnet=true
 ```
 
 この CloudFormation Template によって、 Bastion 用の VPCとTransit Gateway が構成されます。
