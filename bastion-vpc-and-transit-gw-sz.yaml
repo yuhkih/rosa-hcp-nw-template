@@ -10,6 +10,7 @@
 # 2023/01/30 yuhkih add Helm installation to the bastion2
 # 2023/02/11 yuhkih add myex- for import variables.
 # 2023/03/23 yuhkih remove the above myex- changes
+# 2025/12/22 yuhkih Add a parameter "VPCwithOnlyPraiveteSubnet" to support with no AWS Firewall Environment
 #   ExportVariablePrefix to avoid export variable conflicts
 #   I am nos sure if this is work for this... -natgw-rtb-id1-rosa
 # !Ref はファイル内参照
@@ -44,6 +45,12 @@ Parameters:
     Type: String
     Default: 10.11.0.0/16
 
+  VPCwithOnlyPrivateSubnet:
+    Description: Added to deal with the environemnt with No AWS firewall
+    Type: String
+    AllowedValues: [true, false]
+    Default: false
+
   #  Public Subnet
   PublicSubnetCIDR:
     Description: Please enter the IP range (CIDR notation) for the public subnet in the first Availability Zone
@@ -51,7 +58,6 @@ Parameters:
     Default: 10.11.0.0/19
 
   # Private Subnet
-
   PrivateSubnetCIDR:
     Description: Please enter the IP range (CIDR notation) for the private subnet in the first Availability Zone
     Type: String
@@ -66,6 +72,13 @@ Parameters:
     Description: Availability Zone 1
     Type: AWS::EC2::AvailabilityZone::Name
     Default: ap-northeast-1a
+
+# ------------------------------------------------------
+# Conditions
+
+Conditions: 
+  AWSFirewallEnvironment: !Equals [ !Ref VPCwithOnlyPrivateSubnet, "false"] 
+
 
 # ------------------------------------------------------
 # Resources
@@ -355,8 +368,10 @@ Resources:
       TransitGatewayId: !Ref TGW # Then route to TGW
     DependsOn: VpcRosaAttachment
 
+  
   VpcRosaTGWRouteFw1:
     Type: "AWS::EC2::Route"
+    Condition: AWSFirewallEnvironment
     Properties:
       RouteTableId: { "Fn::ImportValue": "fw-rtb-id1-rosa" } # Route table ID for Public Subnet in ROSA VPC
       DestinationCidrBlock: !Ref VpcCIDR # If destination is ROSA VPC CIDR
@@ -365,6 +380,7 @@ Resources:
 
   VpcRosaTGWRoutePublic1:
     Type: "AWS::EC2::Route"
+    Condition: AWSFirewallEnvironment
     Properties:
       RouteTableId: { "Fn::ImportValue" : "natgw-rtb-id1-rosa" } # Route table ID for Public Subnet in ROSA VPC
       DestinationCidrBlock: !Ref VpcCIDR # If destination is ROSA VPC CIDR

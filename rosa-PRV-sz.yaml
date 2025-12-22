@@ -1,5 +1,5 @@
 # The following will be deployed with this CF
-# 1. Three subnets for each AZ. (Thins template is for single AZ)
+# 1. single AZ with 
 # 2. AWS firewall deployed with a policy which allow all the domains listed on the ROSA document as prerequistes for egress.
 #
 # This template will create the following Network Firewall rules
