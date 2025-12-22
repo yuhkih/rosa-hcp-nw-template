@@ -68,7 +68,7 @@ cd rosa-hcp-nw-template
 
 作業に必要な CloudFormation の Template や、sh 等は `rosa-nw-template` ディレクトリに含まれています。
 
-# ROSA 用の Private Network のデプロイ
+# ROSA 用の VPC と Private Network のデプロイ
 
 以下の CloudFormation のテンプレートを使用して、ROSA をインストールするためのネットワークを作成します。
 
@@ -162,7 +162,7 @@ rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$RE
 ```
 
 
-# 別 VPC を作成し、別VPCに踏み台をデプロイ (Option2) 
+# 別 VPC を作成し、別VPCに踏み台 EC2 をデプロイ 
 
 こちらは、踏み台を ROSA Cluster とは別の VPCにデプロイし、Transit Gateway 経由で ROSA Cluster にアクセスする方法です。
 
@@ -374,25 +374,14 @@ bastion VPC の削除待ち
 aws cloudformation wait stack-delete-complete --stack-name mybastion
 ```
 
-踏み台 兼 Proxy server の削除
-
-```
-aws cloudformation delete-stack --stack-name ssmbastion
-```
-
-踏み台 兼 Proxy server の削除待ち
-
-```
-aws cloudformation wait stack-delete-complete --stack-name ssmbastion
-```
   
-ROSA HCP VPC の削除
+ROSA HCP 用 VPC の削除
 
 ```
 aws cloudformation delete-stack --stack-name myROSANetwork
 ```
 
-ROSA HCP VPC の削除待ち
+ROSA HCP 用 VPC の削除待ち
 
 ```
 aws cloudformation wait stack-delete-complete --stack-name myROSANetwork 
