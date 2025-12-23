@@ -145,7 +145,6 @@ echo $CLUSTER_NAME
 echo $REGION
 ```
 
-```
 
 上記の変数のセットが確認できたら、以下の手順書に進み Private Cluster をインストールします。
 
