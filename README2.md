@@ -157,7 +157,7 @@ echo $REGION
 
 
 ```
-rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS --private  ---default-ingress-private -m auto
+rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS --private  --default-ingress-private  --properties zero_egress:true -m auto -y
 ```
 
 クラスターのインストール完了を以下のコマンドで待ちます。
