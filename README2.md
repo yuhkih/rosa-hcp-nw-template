@@ -175,8 +175,15 @@ rosa create admin -c $CLUSTER_NAME
 いかのようなログイン情報が表示されるのでメモしておきます。
 
 ```sample
+$ rosa create admin -c $CLUSTER_NAME
+I: Admin account has been added to cluster 'myhcpcluster'.
+I: Please securely store this generated password. If you lose this password you can delete and recreate the cluster admin user.
+I: To login, run the following command:
 
+   oc login https://api.myhcpcluster.1234.p1.openshiftapps.com:443 --username cluster-admin --password QR1na-v2wGb-ohR3c-LR4Cd
 
+I: It may take several minutes for this access to become active.
+$
 ```
 
 
