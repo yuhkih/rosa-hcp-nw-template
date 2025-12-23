@@ -96,8 +96,8 @@ aws cloudformation deploy --template-file  rosa-PRV-sz.yaml --stack-name myROSAN
 
 実行ログなどは、AWS Console 上から確認した方がわかりやすいかもしれません。
 
-これをデプロイする事で、以下のような環境が作成されます。
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/2b4805a4-a613-4a5c-aef3-d0b08f210677)
+この Cloud Formation を実行する事で、以下のような環境が作成されます。
+![image](/images/rosa-vpc.png)
 
 本来であれば、この VPC には、Private Subnet だけを置いて、Egress 用の VPC を分割した方が理解しやすい所ですが、そうなると環境作成の時間もコストもかかるので、このようなネットワーク構成にしています。
 ROSA の PrivateLink クラスターを Private Subnet に作成した場合、Load Banalcer の持つ IP も Private の IP になり、外からトラフィックが入ってくる事はありません。
@@ -170,12 +170,8 @@ rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$RE
 
 # 別 VPC を作成し、別VPCに踏み台 EC2 をデプロイ 
 
-こちらは、踏み台を ROSA Cluster とは別の VPCにデプロイし、Transit Gateway 経由で ROSA Cluster にアクセスする方法です。
+踏み台を ROSA Cluster とは別の VPCにデプロイし、Transit Gateway 経由で ROSA Cluster にアクセスする方法です。
 
-当初は SSM を有効にした EC2 インスタンスを ROSA VPC 内にデプロイして踏み台としていたのですが、ブラウザで OpenShift コンソールにアクセスしたくなり、専用の踏み台をデプロイする事にしました。
-また、AWS Console を通した操作だと、どうも操作性がよくないため、通常のターミナルアクセスも欲しいと思ったのが、この追加の VPC環境の設置の動機です。
-
-踏み台は、別の VPC に作成され、Transit Gateway で Cluster のある VPC に接続されます。
 
 ## CloudFormation テンプレートの実行 
 
@@ -196,7 +192,7 @@ aws cloudformation deploy --template-file bastion-vpc-and-transit-gw-sz.yaml --s
 以下の図の左側の VPC と踏み台となる 2つの EC2、ROSA VPC と接続するための Transit Gatway が環境が構築されます。
 左側に設置された VPC は、踏み台を使って、隣の Cluster のある VPCを覗くための VPCで、Cluster のある VPC からの egress トラフィック(インターネットに出るトラフィック）はこの VPCを通過しません。
 
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/23bd3cb3-268f-49d6-a918-8660e6e598c4)
+![image](images/bastion-vpc.png) 
 
 
 ## Route 53 の設定の編集
