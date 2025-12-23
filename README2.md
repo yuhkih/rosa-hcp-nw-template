@@ -111,9 +111,11 @@ aws cloudformation deploy --template-file  rosa-PRV-sz.yaml --stack-name myROSAN
 本来であれば、この VPC には、Private Subnet だけを置いて、Egress 用の VPC を分割した方が理解しやすい所ですが、そうなると環境作成の時間もコストもかかるので、このようなネットワーク構成にしています。
 ROSA の PrivateLink クラスターを Private Subnet に作成した場合、Load Banalcer の持つ IP も Private の IP になり、外からトラフィックが入ってくる事はありません。
 
+# 4. ROSA Private Cluster のインストール
+
 ## 変数の準備
 
-後続の手順で使うために、サブネットIDを変数にセットしておきます。
+インストールの手順で使うために、サブネットIDを変数にセットしておきます。
 
 jq コマンドをインストールしている場合は、AWS CLI で以下のように取得できます。
 
@@ -123,19 +125,17 @@ jq コマンドをインストールしている場合は、AWS CLI で以下の
 export SUBNET_IDS=`aws ec2 describe-subnets | jq -r '.Subnets[] | [ .CidrBlock, .SubnetId, .AvailabilityZone, .Tags[].Value ] | @csv' | grep Private-Subnet1 | awk -F'[,]' '{print $2}' | sed 's/"//g'`
 ```
 
-後続の手順で使うために、Cluster名の変数をセットしておきます。
+インストールの手順で使うために、Cluster名の変数をセットしておきます。
 
 ```
 export CLUSTER_NAME=myhcpcluster
 ```
 
-後続の手順で使うために、AWS Region 名の変数をセットしておきます。
+インストールの手順で使うために、AWS Region 名の変数をセットしておきます。
 
 ```
 export REGION=ap-northeast-1
 ```
-
-# 4. ROSA Private Cluster のインストール
 
 以下の変数がセットされている事を今一度、確認します。
 
