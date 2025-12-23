@@ -1,4 +1,4 @@
-# はじめに
+# 1. はじめに
 
 このリポジトリーの CloudFromation は、ROSA 環境でのネットワークトラフィックを観察するために作られたものです。
 デプロイされた環境を使う事で、ROSA HCP Cluster を Private Cluster として作成した時に、どのような通信が Egress として発生するかが確認できます。
@@ -16,7 +16,7 @@ AWS ではインターネットから `Private Subnet` に直接アクセスで�
 Public Subnet に設置した、EC2に `Security Group` は `Port 22 (SSH)` のみを開けています。さらに Source IP アドレスの条件を付けて、セキュリティを強化する事も可能です。
 
 
-# 作業環境のセットアップ
+# 2. 作業環境のセットアップ
 
 以下の環境をセットアップされている環境を前提としています。
 
@@ -72,7 +72,7 @@ RHEL系 (Amazon Linux等) の場合は、
 [こちら](https://yuhkih.github.io/mcs-docs/docs/rosa-hcp/create-delete/rosa-hcp-get-token/) の手順を実行して CLI から ROSA を作れるようにセットアップしてください。
 
 
-# この Repository のクローン
+## この Repository のクローン
 
 自分の端末上で以下のコマンドを実行して、このレポジトリーをローカルにダウンロードします。
 
@@ -83,7 +83,7 @@ cd rosa-hcp-nw-template
 
 作業に必要な CloudFormation の Template や、sh 等は `rosa-nw-template` ディレクトリに含まれています。
 
-# ROSA 用の VPC と Private Network のデプロイ
+# 3. ROSA 用の VPC と Private Network のデプロイ
 
 以下の CloudFormation のテンプレートを使用して、ROSA をインストールするためのネットワークを作成します。
 
@@ -137,7 +137,7 @@ export CLUSTER_NAME=myhcpcluster
 export REGION=ap-northeast-1
 ```
 
-# ROSA Private Cluster のインストール
+# 4. ROSA Private Cluster のインストール
 
 以下の変数がセットされている事を今一度、確認します。
 
@@ -166,7 +166,7 @@ rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$RE
 
 
 
-# Bastion 用の VPC を作成し、踏み台 EC2 をデプロイ 
+# 5. Bastion 用の VPC を作成と、踏み台 EC2 をデプロイ 
 
 踏み台を ROSA Cluster とは別の VPCにデプロイし、Transit Gateway 経由で ROSA Cluster にアクセスする方法です。
 
@@ -235,7 +235,7 @@ Default の状態では、Security Group の設定により、Cluster のある 
 「インバウンドルール」として、プロトコル `HTTPS` / ソース `10.11.0.0/16` (bastion 用の VPC の CIDR) というエントリーを作成します。
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/2eb11780-10f4-400a-91ce-52661b57805c)
 
-# SSH Port foward の設定と Bastion へのログイン
+# 6. SSH Port foward の設定と Bastion へのログイン
 
 ## CLI ログイン環境のセットアップ
 Private Subnet に接続された Bastion にログインするには、SSH Port Forward を設定する必要がありますが、ここでは手順をシェル化しています。
@@ -316,25 +316,8 @@ SSHの鍵は CloudFormation で Bastionがデプロイされた時に AWS 上に
     - Proxy DNS when using SOCKS v5 にチェックを入れます。
     ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/bbacf990-89a1-4c24-b213-5be1dddf1055)
 
-# AWS Firewall Log の確認
 
-この環境では、アウトバウンドのトラフィックは、AWS Network Firewall を通過するように構成されています。
-
-「VPC」=> 「Network Firewall: ファイアウォールポリシー」=> 「singleaz-InspectionFirewall-Policy」のような名前の `Firewall Policy` が設定されていて、以下のような 「ステートフルルールグループ」のサンプルがあらかじめ作成されています。(いろいろ書き替えているので、時期によって内容が異なる可能性があります）
-
-ご自身でドメインを追加・削除をしたり、ルールを作成して動作を確かめてみてください。
-
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/a0293704-4ff5-4cbe-86b1-ba08c959d7b5)
-
-上記のルールを編集しながら、アウトバンドトラフィックの確認ができます。
-
-Firewall のログは、「CloudWatch」の「ロググループ」から確認できます。
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/6fcc272c-a8ce-4277-8ab7-ee852b1682a8)
-
-
-
-
-# 環境の削除
+# 7. 環境の削除
 
 **ROSA HCP Cluster の削除**
 
