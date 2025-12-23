@@ -83,7 +83,7 @@ cd rosa-hcp-nw-template
 
 作業に必要な CloudFormation の Template や、sh 等は `rosa-nw-template` ディレクトリに含まれています。
 
-# 3. ROSA 用の VPC と Private Network のデプロイ
+# 3. CF を使った ROSA 用の VPC と Private Network のデプロイ
 
 以下の CloudFormation のテンプレートを使用して、ROSA をインストールするためのネットワークを作成します。
 
@@ -166,7 +166,7 @@ rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$RE
 
 
 
-# 5. Bastion 用の VPC を作成と、踏み台 EC2 をデプロイ 
+# 5. CF を使った Bastion 用の VPC 作成と、踏み台 EC2 のデプロイ 
 
 踏み台を ROSA Cluster とは別の VPCにデプロイし、Transit Gateway 経由で ROSA Cluster にアクセスする方法です。
 
