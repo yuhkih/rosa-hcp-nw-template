@@ -187,7 +187,7 @@ I: It may take several minutes for this access to become active.
 $
 ```
 
-この時点では、作成された ROSA HCP クラスターはインターネットには接続されていないので、操作はできません。
+この時点では、作成された ROSA HCP クラスターはインターネットには接続されていないので、login はできません。
 
 # 5. CF を使った Bastion 用の VPC 作成と、踏み台 EC2 のデプロイ 
 
