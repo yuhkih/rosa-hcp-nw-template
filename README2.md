@@ -208,10 +208,7 @@ AWS CLI から bastion VPC を作成するために CloudFormation を実行す�
 aws cloudformation deploy --template-file bastion-vpc-and-transit-gw-sz.yaml --stack-name mybastion --parameter-overrides VPCwithOnlyPrivateSubnet=true
 ```
 
-この CloudFormation Template によって、 Bastion 用の VPCとTransit Gateway が構成されます。
-
-以下の図の左側の VPC と踏み台となる 2つの EC2、ROSA VPC と接続するための Transit Gatway が環境が構築されます。
-左側に設置された VPC は、踏み台を使って、隣の Cluster のある VPCを覗くための VPCで、Cluster のある VPC からの egress トラフィック(インターネットに出るトラフィック）はこの VPCを通過しません。
+この CloudFormation Template によって、以下の図の左側の VPC と踏み台となる 2つの EC2、ROSA VPC と接続するための Transit Gatway が環境が構築されます。
 
 ![image](images/bastion-vpc.png) 
 
@@ -241,22 +238,47 @@ Default の状態では、Security Group の設定により、Cluster のある 
 
 ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/7b7af50d-2437-4023-b302-924592aaaaeb)
 
-「VPC ダッシュボード」 ＝＞「エンドポイント」の画面に行きます。
+ROSA の Cluster がインストールされている VPC ID と、Controlplane に繋がる VPCEndpoint の ID を取得して変数にセットします。
 
-`Interface` タイプで、`サービス名` が 「com.amazonaws.vpce.ap-northeast-1.vpce-svc-<ランダム>」の名前になっているものの 「VPC エンドポイントID」 の チェックボックス を選択します。(Gatewayタイプは、AWS Firewall の vpc endpoint で、それ以外は踏み台の Session Manager で必要 Endpointです。)
+```
+read -r VPCE_ID VPC_ID <<< $(aws ec2 describe-vpc-endpoints --filters "Name=tag:api.openshift.com/id,Values=$(rosa describe cluster -c ${CLUSTER_NAME} -o yaml | grep '^id: ' | cut -d' ' -f2)" --query 'VpcEndpoints[].[VpcEndpointId,VpcId]' --output text)
+```
 
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/9bf433ad-d52f-4734-9035-d64f0bcc50b1)
+必要な変数が取得できているか確認します。
 
+```
+echo "VPCE_ID="$VPCE_ID",VPC_ID="$VPC_ID"
+```
 
-下の画面にスクロールして、「セキュリティグループ」タブから「グループＩＤ」をクリックします。
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/c39bd22f-26a5-4d27-be43-dbdb87edc96d)
+新しい  Security Group を作成し、その ID を取得します。
 
+```
+export SG_ID=$(aws ec2 create-security-group --description "Granting API access to ${CLUSTER_NAME} from outside of VPC" --group-name "${CLUSTER_NAME}-api-sg" --vpc-id $VPC_ID --output text)
+```
 
-「セキュリティグループID」が、一つ前のステップの「グループID」と同じである行のチェックボックスを選択し、画面下部にある「インバウンドルール」タブをクリックします。
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/50bf3ee3-836b-46fa-a0bf-0a8d82b746b3)
+必要な変数が取得できているか確認します。
 
-「インバウンドルール」として、プロトコル `HTTPS` / ソース `10.11.0.0/16` (bastion 用の VPC の CIDR) というエントリーを作成します。
-![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/2eb11780-10f4-400a-91ce-52661b57805c)
+```
+echo "SG_ID="$SG_ID
+```
+
+アクセスを許可する Bastion が設置された VPC の CIDR を変数にセットします。
+
+```
+export BASTION_VPC_CIDR="10.11.0.0/16"
+```
+
+以下のコマンドを実行して、新しく作成した Security Group に、Bastion の VPC の CIDR からの 443 のアクセスを許可するルールを付け加えます。
+
+```
+aws ec2 authorize-security-group-ingress --group-id $SG_ID --ip-permissions FromPort=443,ToPort=443,IpProtocol=tcp,IpRanges=[{CidrIp=$BASTION_VPC_CIDR}]
+```
+
+作成した Security Group を VPCEndpint に紐付けます。
+
+```
+aws ec2 modify-vpc-endpoint --vpc-endpoint-id $VPCE_ID --add-security-group-ids $SG_ID
+```
 
 # 6. SSH Port foward の設定と Bastion へのログイン
 
@@ -272,7 +294,7 @@ SSHの鍵は CloudFormation で Bastionがデプロイされた時に AWS 上に
     Publicネットワークにある踏み台 EC2 サーバーにログインします。
     
     ```
-    port-forward.sh 1
+    ./port-forward.sh 1
     ```
 
     ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/fa03eae9-444f-45d7-b997-56cc69453527)
@@ -284,7 +306,7 @@ SSHの鍵は CloudFormation で Bastionがデプロイされた時に AWS 上に
 
     Privateネットワークにある踏み台 EC2 サーバーにログインします。
     ```
-    port-forward.sh 2
+    ./port-forward.sh 2
     ```
 
     ![image](https://github.com/yuhkih/rosa-hcp-nw-template/assets/8530492/09a541b4-3f87-4183-871c-7cc9e5cd2c20)
