@@ -174,7 +174,8 @@ rosa create admin -c $CLUSTER_NAME
 
 いかのようなログイン情報が表示されるのでメモしておきます。
 
-```sample
+```
+[Example]
 $ rosa create admin -c $CLUSTER_NAME
 I: Admin account has been added to cluster 'myhcpcluster'.
 I: Please securely store this generated password. If you lose this password you can delete and recreate the cluster admin user.
@@ -186,6 +187,7 @@ I: It may take several minutes for this access to become active.
 $
 ```
 
+この時点では、作成された ROSA HCP クラスターはインターネットには接続されていないので、操作はできません。
 
 # 5. CF を使った Bastion 用の VPC 作成と、踏み台 EC2 のデプロイ 
 
