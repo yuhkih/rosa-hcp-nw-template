@@ -145,13 +145,11 @@ echo $CLUSTER_NAME
 echo $REGION
 ```
 
-HTTP Proxy を設置した場合は以下も確認してください
-
-```
-echo $PROXY_IP
 ```
 
 上記の変数のセットが確認できたら、以下の手順書に進み Private Cluster をインストールします。
+
+# ROSA Private Cluster のインストール
 
 [こちらの](https://yuhkih.github.io/mcs-docs/docs/rosa-hcp/create-delete/rosa-hcp-enable/)の 3～5の1 までの手順を実行します。(**ROSA Cluster のインストール方法は、この手順の中に埋め込むと複雑になってしまうので外だしにしています**）
 
@@ -168,7 +166,7 @@ rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$RE
 ```
 
 
-# 別 VPC を作成し、別VPCに踏み台 EC2 をデプロイ 
+# Bastion 用の VPC を作成し、踏み台 EC2 をデプロイ 
 
 踏み台を ROSA Cluster とは別の VPCにデプロイし、Transit Gateway 経由で ROSA Cluster にアクセスする方法です。
 
