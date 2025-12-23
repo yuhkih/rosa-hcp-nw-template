@@ -128,7 +128,7 @@ export CLUSTER_NAME=myhcpcluster
 export REGION=ap-northeast-1
 ```
 
-# ROSA HCP Cluster の install
+# ROSA Private Cluster のインストール
 
 以下の変数がセットされている事を今一度、確認します。
 
@@ -148,7 +148,6 @@ echo $REGION
 
 上記の変数のセットが確認できたら、以下の手順書に進み Private Cluster をインストールします。
 
-# ROSA Private Cluster のインストール
 
 [こちらの](https://yuhkih.github.io/mcs-docs/docs/rosa-hcp/create-delete/rosa-hcp-enable/)の 3～5の1 までの手順を実行します。(**ROSA Cluster のインストール方法は、この手順の中に埋め込むと複雑になってしまうので外だしにしています**）
 
