@@ -63,6 +63,15 @@ RHEL系 (Amazon Linux等) の場合は、
 ```
 でインストール可能です。
 
+## ROSA の有効化
+
+[こちら](https://yuhkih.github.io/mcs-docs/docs/rosa-hcp/create-delete/rosa-hcp-enable/) の手順を実行して AWS コンソール上から ROSA を有効化し、Red Hat アカウントとリンクさせてください。
+
+## ROSA 作成用の Token の取得
+
+[こちら](https://yuhkih.github.io/mcs-docs/docs/rosa-hcp/create-delete/rosa-hcp-get-token/) の手順を実行して CLI から ROSA を作れるようにセットアップしてください。
+
+
 # この Repository のクローン
 
 自分の端末上で以下のコマンドを実行して、このレポジトリーをローカルにダウンロードします。
@@ -149,19 +158,12 @@ echo $REGION
 上記の変数のセットが確認できたら、以下の手順書に進み Private Cluster をインストールします。
 
 
-[こちらの](https://yuhkih.github.io/mcs-docs/docs/rosa-hcp/create-delete/rosa-hcp-enable/)の 3～5の1 までの手順を実行します。(**ROSA Cluster のインストール方法は、この手順の中に埋め込むと複雑になってしまうので外だしにしています**）
 
-ここでは Private Cluster を作成するので、`rosa create cluster` の実行時は手順の 5.1 の以下を実行します。
 
 ```
-rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS -i --private-link -y -m auto
+rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS -i --private  -y -m auto
 ```
 
-HTTP Proxy を通したい場合は、**手順の 5.1 で、上記の代わりに以下を実行してください。**
-
-```
-rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS -i --private-link -y -m auto --http-proxy "http://$PROXY_IP:8888" --https-proxy "http://$PROXY_IP:8888"
-```
 
 
 # Bastion 用の VPC を作成し、踏み台 EC2 をデプロイ 
