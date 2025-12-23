@@ -153,15 +153,31 @@ echo $REGION
 ```
 
 
-上記の変数のセットが確認できたら、以下の手順書に進み Private Cluster をインストールします。
-
-
+上記の変数のセットが確認できたら、以下のコマンドで Private Cluster をインストールします。インタラクティブに入力を求めてきますが、エンターで進んでください。
 
 
 ```
-rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS -i --private  -y -m auto
+rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS --private  ---default-ingress-private -m auto
 ```
 
+クラスターのインストール完了を以下のコマンドで待ちます。
+
+```
+rosa logs install -c $CLUSTER_NAME --watch
+```
+
+クラスターの導入が完了したら、cluster-admin (管理者) を作成します。
+
+```
+rosa create admin -c $CLUSTER_NAME
+```
+
+いかのようなログイン情報が表示されるのでメモしておきます。
+
+```sample
+
+
+```
 
 
 # 5. CF を使った Bastion 用の VPC 作成と、踏み台 EC2 のデプロイ 
