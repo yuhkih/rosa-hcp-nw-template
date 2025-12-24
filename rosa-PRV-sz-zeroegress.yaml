@@ -6,7 +6,7 @@
 #
 # History 
 # 2025/12/22 yuhih clean up history
-#
+# 2025/12/24 yuhkih modified for zero egress, added Key=kubernetes.io/role/internal-elb tag to the private subnet.
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "ROSA sample Single AZ network with FW"
 
@@ -57,6 +57,22 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub ${EnvironmentName}-VPC
+        - Key: CloudFormation
+          Value: true 
+
+  PrivateRtb1Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRtb1
+      SubnetId: !Ref PrivateSubnet1
+
+  # PrivateRtb1DefaultRoute:
+  #  Type: AWS::EC2::Route
+  #  Properties:
+  #    DestinationCidrBlock: "0.0.0.0/0"
+  #    NatGatewayId: !Ref NatGw1 
+  #    RouteTableId: !Ref PrivateRtb1
+
 
   # Private Subnets for Test Instances:
   PrivateSubnet1:
@@ -73,16 +89,10 @@ Resources:
           Value: !Sub ${EnvironmentName}-Private-Subnet1 (ROSA VPC AZ1)
         - Key: SubnetTag
           Value: !Sub ${SubnetTagHeader}-Private-Subnet1
-
-
-  # Private Route Tables:
-  PrivateRtb1:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref VPCA
-      Tags:
-        - Key: Name
-          Value: !Sub ${EnvironmentName}-PrivateRouteTable1 (ROSA VPC AZ1)
+        - Key: kubernetes.io/role/internal-elb
+          Value: Value=1
+        - Key: CloudFormation
+          Value: true 
 
   PrivateRtb1Association:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -98,6 +108,84 @@ Resources:
   #    RouteTableId: !Ref PrivateRtb1
 
 
+  # Private Route Tables:
+  PrivateRtb1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPCA
+      Tags:
+        - Key: Name
+          Value: !Sub ${EnvironmentName}-PrivateRouteTable1 (ROSA VPC AZ1)
+        - Key: CloudFormation
+          Value: true 
+
+  PrivateRtb1Association:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRtb1
+      SubnetId: !Ref PrivateSubnet1
+
+  # PrivateRtb1DefaultRoute:
+  #  Type: AWS::EC2::Route
+  #  Properties:
+  #    DestinationCidrBlock: "0.0.0.0/0"
+  #    NatGatewayId: !Ref NatGw1 
+  #    RouteTableId: !Ref PrivateRtb1
+
+  # --------------------------
+  # Added for Zero Egress
+  # --------------------------
+ 
+  EcrApiVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPCA 
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ecr.api
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+      Tags:
+        - Key: CloudFormation
+          Value: true 
+
+  EcrDkrVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPCA
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.ecr.dkr
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+      Tags:
+        - Key: CloudFormation
+          Value: true 
+
+  S3VpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPCA
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.s3
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref PrivateRtb1
+      Tags:
+        - Key: CloudFormation
+          Value: true 
+
+  StsVpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPCA
+      ServiceName: !Sub com.amazonaws.${AWS::Region}.sts
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+      Tags:
+        - Key: CloudFormation
+          Value: true 
 
 # Export Variable Prefix
 Outputs:
