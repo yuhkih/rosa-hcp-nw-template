@@ -100,7 +100,7 @@ rosa-PRV-sz-zeroegress.yaml
 CLI から CloudFormation を使って実行する場合は以下のようになります。
 
 ```
-aws cloudformation deploy --template-file  rosa-PRV-sz-zeroegress.yaml --stack-name myROSANetwork --capabilities CAPABILITY_NAMED_IAM
+aws cloudformation deploy --template-file  rosa-PRV-sz-zeroegress.yaml --stack-name myROSAVPC --capabilities CAPABILITY_NAMED_IAM
 ```
 
 実行ログなどは、AWS Console 上から確認した方がわかりやすいかもしれません。
@@ -237,7 +237,7 @@ bastion-vpc-and-transit-gw-sz.yaml
 AWS CLI から bastion VPC を作成するために CloudFormation を実行する場合は以下のようになります。
    
 ```
-aws cloudformation deploy --template-file bastion-vpc-and-transit-gw-sz.yaml --stack-name mybastion --parameter-overrides VPCwithOnlyPrivateSubnet=true
+aws cloudformation deploy --template-file bastion-vpc-and-transit-gw-sz.yaml --stack-name mybastionVPC --parameter-overrides VPCwithOnlyPrivateSubnet=true
 ```
 
 この CloudFormation Template によって、以下の図の左側の VPC と踏み台となる 2つの EC2、ROSA VPC と接続するための Transit Gatway が環境が構築されます。
@@ -419,7 +419,7 @@ rosa delete oidc-provider --oidc-config-id $OIDC_ID -m auto -y
 rosa delete account-roles -m auto -y
 ```
 
-**CloudFormation Stack の削除**
+## CloudFormation Stack の削除
 
 CloudFormation の Template は依存関係をもっているので、 `bastion VPC` or `Proxy Server` => `ROSA HCP VPC` の順で削除する必要があります。
 
@@ -428,24 +428,24 @@ CloudFormation の Template は依存関係をもっているので、 `bastion 
 bastion VPC の削除
 
 ```
-aws cloudformation delete-stack --stack-name mybastion
+aws cloudformation delete-stack --stack-name mybastionVPC
 ```
 
 bastion VPC の削除待ち
 
 ```
-aws cloudformation wait stack-delete-complete --stack-name mybastion
+aws cloudformation wait stack-delete-complete --stack-name mybastionVPC
 ```
 
   
 ROSA HCP 用 VPC の削除
 
 ```
-aws cloudformation delete-stack --stack-name myROSANetwork
+aws cloudformation delete-stack --stack-name myROSAVPC
 ```
 
 ROSA HCP 用 VPC の削除待ち
 
 ```
-aws cloudformation wait stack-delete-complete --stack-name myROSANetwork 
+aws cloudformation wait stack-delete-complete --stack-name myROSAVPC
 ```
