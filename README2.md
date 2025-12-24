@@ -187,7 +187,7 @@ echo $SUBNET_IDS, $CLUSTER_NAME, $REGION, $OIDC_ID
 ```
 
 ```
-rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --operator-roles-prefix=$CLUSTER_NAME  --region $REGION --subnet-ids=$SUBNET_IDS --oidc-config-id $OIDC_ID　--private  --default-ingress-private  --properties zero_egress:true -m auto -y
+rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp --operator-roles-prefix=$CLUSTER_NAME --region $REGION --subnet-ids=$SUBNET_IDS --oidc-config-id $OIDC_ID --private --default-ingress-private  --properties zero_egress:true -m auto -y
 ```
 
 クラスターのインストール完了を以下のコマンドで待ちます。
