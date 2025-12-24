@@ -409,9 +409,14 @@ SSHの鍵は CloudFormation で Bastionがデプロイされた時に AWS 上に
 rosa delete cluster -c $CLUSTER_NAME -y
 ```
 
+以下のコマンドで削除が完了するのを待ちます。
+
+```
+rosa logs uninstall -c $CLUSTER_NAME --watch
+```
 ## Operator Role と OIDC Config の削除 
 
-パラメーターは、`rosa delete cluster` を実行した時に表示されます。
+Operator 用の IAM Role と、作成した OIDC Config を削除します。
 
 ```
 rosa delete operator-roles --prefix $CLUSTER_NAME -m auto -y
