@@ -424,6 +424,13 @@ rosa delete oidc-provider --oidc-config-id $OIDC_ID -m auto -y
 rosa delete account-roles -m auto -y
 ```
 
+## 追加で作成した Security Group の削除
+
+```
+aws ec2 delete-security-group --group-id $SG_ID
+```
+
+
 ## CloudFormation Stack の削除
 
 CloudFormation の Template は依存関係をもっているので、 `bastion VPC` or `Proxy Server` => `ROSA HCP VPC` の順で削除する必要があります。
