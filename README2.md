@@ -174,7 +174,7 @@ export OIDC_ID=1234k0ed2mvleekileodc7f8jgn47ervj
 
 ```
 rosa create operator-roles --hosted-cp --prefix=$CLUSTER_NAME --oidc-config-id=$OIDC_ID --installer-role-arn arn:aws:iam::$AWS_ACCOUNT_ID:role/ManagedOpenShift-HCP-ROSA-Installer-Role -m auto -y
-``
+```
 
 ## ROSA HCP Cluster のインストール
 
