@@ -92,7 +92,7 @@ ROSA の Private Cluser (with PrivatreLink) 構成では、ユーザーが自分
 Single AZ の実験環境を作成します。
 
 ```
-rosa-PRV-sz.yaml
+rosa-PRV-sz-zeroegress.yaml
 ```
 
 を使用して、デプロイ完了まで待ちます。AWS GUIから上記の YAML をインポート可能です。
@@ -100,7 +100,7 @@ rosa-PRV-sz.yaml
 CLI から CloudFormation を使って実行する場合は以下のようになります。
 
 ```
-aws cloudformation deploy --template-file  rosa-PRV-sz.yaml --stack-name myROSANetwork --capabilities CAPABILITY_NAMED_IAM
+aws cloudformation deploy --template-file  rosa-PRV-sz-zeroegress.yaml --stack-name myROSANetwork --capabilities CAPABILITY_NAMED_IAM
 ```
 
 実行ログなどは、AWS Console 上から確認した方がわかりやすいかもしれません。
