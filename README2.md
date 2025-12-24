@@ -83,7 +83,7 @@ cd rosa-hcp-nw-template
 
 作業に必要な CloudFormation の Template や、sh 等は `rosa-nw-template` ディレクトリに含まれています。
 
-# 3. CF を使った ROSA 用の VPC と Private Network のデプロイ
+# 3. CFn を使った ROSA 用の VPC と Private Network のデプロイ
 
 以下の CloudFormation のテンプレートを使用して、ROSA をインストールするためのネットワークを作成します。
 
@@ -97,10 +97,15 @@ rosa-PRV-sz-zeroegress.yaml
 
 を使用して、デプロイ完了まで待ちます。AWS GUIから上記の YAML をインポート可能です。
 
-CLI から CloudFormation を使って実行する場合は以下のようになります。
+CLI から CloudFormation を使って、ap-northeast-1 に CloudFormation のスタックを作成する場合は以下のようになります。
+
 
 ```
-aws cloudformation deploy --template-file  rosa-PRV-sz-zeroegress.yaml --stack-name myROSAVPC --capabilities CAPABILITY_NAMED_IAM
+export AWS_REGION=ap-northeast-1 
+```
+
+```
+aws cloudformation deploy --template-file  rosa-PRV-sz-zeroegress.yaml --stack-name myROSAVPC --region $AWS_REGION --capabilities CAPABILITY_NAMED_IAM
 ```
 
 実行ログなどは、AWS Console 上から確認した方がわかりやすいかもしれません。
@@ -127,12 +132,6 @@ export SUBNET_IDS=`aws ec2 describe-subnets | jq -r '.Subnets[] | [ .CidrBlock, 
 
 ```
 export CLUSTER_NAME=myhcpcluster
-```
-
-インストールの手順で使うために、AWS Region 名の変数をセットしておきます。
-
-```
-export REGION=ap-northeast-1
 ```
 
 インストールの手順で使うために、AWS Account ID の変数をセットしておきます
@@ -183,7 +182,7 @@ rosa create operator-roles --hosted-cp --prefix=$CLUSTER_NAME --oidc-config-id=$
 
 
 ```
-echo $SUBNET_IDS, $CLUSTER_NAME, $REGION, $OIDC_ID
+echo $SUBNET_IDS, $CLUSTER_NAME, $AWS_REGION, $OIDC_ID
 ```
 
 全ての変数がセットされている事を確認したら、以下のコマンドでインストールを開始します。
@@ -221,12 +220,12 @@ $
 
 この時点では、作成された ROSA HCP クラスターはインターネットには接続されていないので、login はできません。
 
-# 5. CF を使った Bastion 用の VPC 作成と、踏み台 EC2 のデプロイ 
+# 5. CFn を使った Bastion 用の VPC 作成と、踏み台 EC2 のデプロイ 
 
 踏み台を ROSA Cluster とは別の VPCにデプロイし、Transit Gateway 経由で ROSA Cluster にアクセスする方法です。
 
 
-## CloudFormation テンプレートの実行 
+## CFn テンプレートの実行 
 
 以下の CloudFormation のテンプレートを使用してスタックを作成します。
 
@@ -237,7 +236,7 @@ bastion-vpc-and-transit-gw-sz.yaml
 AWS CLI から bastion VPC を作成するために CloudFormation を実行する場合は以下のようになります。
    
 ```
-aws cloudformation deploy --template-file bastion-vpc-and-transit-gw-sz.yaml --stack-name mybastionVPC --parameter-overrides VPCwithOnlyPrivateSubnet=true
+aws cloudformation deploy --template-file bastion-vpc-and-transit-gw-sz.yaml --stack-name mybastionVPC --parameter-overrides VPCwithOnlyPrivateSubnet=true --region $AWS_REGION
 ```
 
 この CloudFormation Template によって、以下の図の左側の VPC と踏み台となる 2つの EC2、ROSA VPC と接続するための Transit Gatway が環境が構築されます。
