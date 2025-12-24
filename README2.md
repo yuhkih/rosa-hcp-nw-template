@@ -92,7 +92,7 @@ ROSA の Private Cluser (with PrivatreLink) 構成では、ユーザーが自分
 Single AZ の実験環境を作成します。
 
 ```
-rosa-PRV-sz.yaml
+rosa-PRV-sz-zeroegress.yaml
 ```
 
 を使用して、デプロイ完了まで待ちます。AWS GUIから上記の YAML をインポート可能です。
@@ -100,7 +100,7 @@ rosa-PRV-sz.yaml
 CLI から CloudFormation を使って実行する場合は以下のようになります。
 
 ```
-aws cloudformation deploy --template-file  rosa-PRV-sz.yaml --stack-name myROSANetwork --capabilities CAPABILITY_NAMED_IAM
+aws cloudformation deploy --template-file  rosa-PRV-sz-zeroegress.yaml --stack-name myROSAVPC --capabilities CAPABILITY_NAMED_IAM
 ```
 
 実行ログなどは、AWS Console 上から確認した方がわかりやすいかもしれません。
@@ -119,8 +119,6 @@ ROSA の PrivateLink クラスターを Private Subnet に作成した場合、L
 
 jq コマンドをインストールしている場合は、AWS CLI で以下のように取得できます。
 
-・Single AZ の場合 ( Private Subnet は 1つです)
-
 ```
 export SUBNET_IDS=`aws ec2 describe-subnets | jq -r '.Subnets[] | [ .CidrBlock, .SubnetId, .AvailabilityZone, .Tags[].Value ] | @csv' | grep Private-Subnet1 | awk -F'[,]' '{print $2}' | sed 's/"//g'`
 ```
@@ -137,30 +135,64 @@ export CLUSTER_NAME=myhcpcluster
 export REGION=ap-northeast-1
 ```
 
+インストールの手順で使うために、AWS Account ID の変数をセットしておきます
+
+```
+export AWS_ACCOUNT_ID=`aws sts get-caller-identity --query Account --output text`
+```
+
+## Account Role の作成
+ROSA Cluster 導入に必要な AWS Account Role を作成します。
+
+```
+rosa create account-roles --hosted-cp -m auto -y
+```
+
+作成された AWS IAM Role の一つの `ManagedOpenShift-HCP-ROSA-Worker-Role` に、ECR へのアクセスするための IAM Policy を付けておきます。
+
+```
+aws iam attach-role-policy \
+--role-name ManagedOpenShift-HCP-ROSA-Worker-Role \
+--policy-arn "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+```
+
+## OIDC Configuration の作成
+OIDC configuration を作成します。
+
+```
+rosa create oidc-config --mode=auto --yes
+```
+
+上記のコマンド実行の出力に `rosa create operator-roles --prefix <user-defined> --oidc-config-id 1234k0ed2mvleekileodc7f8jgn47ervj`　の様なサンプルコマンドが出てくるので、最後の ID の部分を変数で保管しておきます。
+
+```
+Example: 
+export OIDC_ID=1234k0ed2mvleekileodc7f8jgn47ervj
+```
+
+## Opeator Role の作成
+
+```
+rosa create operator-roles --hosted-cp --prefix=$CLUSTER_NAME --oidc-config-id=$OIDC_ID --installer-role-arn arn:aws:iam::$AWS_ACCOUNT_ID:role/ManagedOpenShift-HCP-ROSA-Installer-Role -m auto -y
+```
+
+## ROSA HCP Cluster のインストール
+
+
 以下の変数がセットされている事を今一度、確認します。
 
 
 ```
-echo $SUBNET_IDS
+echo $SUBNET_IDS, $CLUSTER_NAME, $REGION, $OIDC_ID
 ```
 
-```
-echo $CLUSTER_NAME
-```
+全ての変数がセットされている事を確認したら、以下のコマンドでインストールを開始します。
 
 ```
-echo $REGION
+rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp --operator-roles-prefix=$CLUSTER_NAME --region $REGION --subnet-ids=$SUBNET_IDS --oidc-config-id $OIDC_ID --private --default-ingress-private  --properties zero_egress:true -m auto -y
 ```
 
-
-上記の変数のセットが確認できたら、以下のコマンドで Private Cluster をインストールします。インタラクティブに入力を求めてきますが、エンターで進んでください。
-
-
-```
-rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp  --region=$REGION --subnet-ids=$SUBNET_IDS --private  --default-ingress-private  --properties zero_egress:true -m auto -y
-```
-
-クラスターのインストール完了を以下のコマンドで待ちます。
+コマンド自体はすぐに完了します。クラスターのインストール完了を以下のコマンドで待ちます。
 
 ```
 rosa logs install -c $CLUSTER_NAME --watch
@@ -205,7 +237,7 @@ bastion-vpc-and-transit-gw-sz.yaml
 AWS CLI から bastion VPC を作成するために CloudFormation を実行する場合は以下のようになります。
    
 ```
-aws cloudformation deploy --template-file bastion-vpc-and-transit-gw-sz.yaml --stack-name mybastion --parameter-overrides VPCwithOnlyPrivateSubnet=true
+aws cloudformation deploy --template-file bastion-vpc-and-transit-gw-sz.yaml --stack-name mybastionVPC --parameter-overrides VPCwithOnlyPrivateSubnet=true
 ```
 
 この CloudFormation Template によって、以下の図の左側の VPC と踏み台となる 2つの EC2、ROSA VPC と接続するための Transit Gatway が環境が構築されます。
@@ -366,22 +398,28 @@ SSHの鍵は CloudFormation で Bastionがデプロイされた時に AWS 上に
 
 **ROSA HCP Cluster の削除**
 
-ROSA HCP Cluster の削除
+## ROSA HCP Cluster の削除
 
 ```
 rosa delete cluster -c $CLUSTER_NAME -y
 ```
 
-Operator Role と OIDC Config の削除 
+## Operator Role と OIDC Config の削除 
 
 パラメーターは、`rosa delete cluster` を実行した時に表示されます。
 
 ```
-rosa delete operator-roles --prefix <prefix> -m auto -y
-rosa delete oidc-provider --oidc-config-id <oidc config id> -m auto -y
+rosa delete operator-roles --prefix $CLUSTER_NAME -m auto -y
+rosa delete oidc-provider --oidc-config-id $OIDC_ID -m auto -y
 ```
 
-**CloudFormation Stack の削除**
+## Account Role の削除
+
+```
+rosa delete account-roles -m auto -y
+```
+
+## CloudFormation Stack の削除
 
 CloudFormation の Template は依存関係をもっているので、 `bastion VPC` or `Proxy Server` => `ROSA HCP VPC` の順で削除する必要があります。
 
@@ -390,24 +428,24 @@ CloudFormation の Template は依存関係をもっているので、 `bastion 
 bastion VPC の削除
 
 ```
-aws cloudformation delete-stack --stack-name mybastion
+aws cloudformation delete-stack --stack-name mybastionVPC
 ```
 
 bastion VPC の削除待ち
 
 ```
-aws cloudformation wait stack-delete-complete --stack-name mybastion
+aws cloudformation wait stack-delete-complete --stack-name mybastionVPC
 ```
 
   
 ROSA HCP 用 VPC の削除
 
 ```
-aws cloudformation delete-stack --stack-name myROSANetwork
+aws cloudformation delete-stack --stack-name myROSAVPC
 ```
 
 ROSA HCP 用 VPC の削除待ち
 
 ```
-aws cloudformation wait stack-delete-complete --stack-name myROSANetwork 
+aws cloudformation wait stack-delete-complete --stack-name myROSAVPC
 ```
