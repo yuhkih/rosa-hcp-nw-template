@@ -279,7 +279,7 @@ read -r VPCE_ID VPC_ID <<< $(aws ec2 describe-vpc-endpoints --filters "Name=tag:
 必要な変数が取得できているか確認します。
 
 ```
-echo "VPCE_ID="$VPCE_ID",VPC_ID="$VPC_ID"
+echo "VPCE_ID="$VPCE_ID",VPC_ID="$VPC_ID
 ```
 
 新しい  Security Group を作成し、その ID を取得します。
