@@ -398,19 +398,25 @@ SSHの鍵は CloudFormation で Bastionがデプロイされた時に AWS 上に
 
 **ROSA HCP Cluster の削除**
 
-ROSA HCP Cluster の削除
+## ROSA HCP Cluster の削除
 
 ```
 rosa delete cluster -c $CLUSTER_NAME -y
 ```
 
-Operator Role と OIDC Config の削除 
+## Operator Role と OIDC Config の削除 
 
 パラメーターは、`rosa delete cluster` を実行した時に表示されます。
 
 ```
-rosa delete operator-roles --prefix <prefix> -m auto -y
-rosa delete oidc-provider --oidc-config-id <oidc config id> -m auto -y
+rosa delete operator-roles --prefix $CLUSTER_NAME -m auto -y
+rosa delete oidc-provider --oidc-config-id $OIDC_ID -m auto -y
+```
+
+## Account Role の削除
+
+```
+rosa delete account-roles -m auto -y
 ```
 
 **CloudFormation Stack の削除**
