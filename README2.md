@@ -186,11 +186,13 @@ rosa create operator-roles --hosted-cp --prefix=$CLUSTER_NAME --oidc-config-id=$
 echo $SUBNET_IDS, $CLUSTER_NAME, $REGION, $OIDC_ID
 ```
 
+全ての変数がセットされている事を確認したら、以下のコマンドでインストールを開始します。
+
 ```
 rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp --operator-roles-prefix=$CLUSTER_NAME --region $REGION --subnet-ids=$SUBNET_IDS --oidc-config-id $OIDC_ID --private --default-ingress-private  --properties zero_egress:true -m auto -y
 ```
 
-クラスターのインストール完了を以下のコマンドで待ちます。
+コマンド自体はすぐに完了します。クラスターのインストール完了を以下のコマンドで待ちます。
 
 ```
 rosa logs install -c $CLUSTER_NAME --watch
