@@ -314,6 +314,12 @@ aws ec2 modify-vpc-endpoint --vpc-endpoint-id $VPCE_ID --add-security-group-ids 
 
 # 6. SSH Port foward の設定と Bastion へのログイン
 
+ここでは、作業者の端末から踏み台サーバーへのアクセスをセットアップします。
+
+クラスターにアクセスできる、AWS の Private Subnet に存在している、EC2 には直接インターネットからはアクセスできないので、Public Subnet に存在する EC2 を経由してアクセスします。
+
+![image](/images/ssh-forward.png)
+
 ## CLI ログイン環境のセットアップ
 Private Subnet に接続された Bastion にログインするには、SSH Port Forward を設定する必要がありますが、ここでは手順をシェル化しています。
 
