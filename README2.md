@@ -369,7 +369,7 @@ SSHの鍵は CloudFormation で Bastionがデプロイされた時に AWS 上に
 幾つかの場面では、GUI が使えた方が便利なケースがあります。
 上記の SSH Port Forward の設定をした後、以下の作業を行います。
 
-1. 踏み台サーバーから、openshift console の名前を に解決します。
+1. 踏み台サーバーから、openshift console の名前を IP アドレスに解決します。
 
     ```
     dig +short console-openshift-console.apps.mycluster.xb5p.p1.openshiftapps.com 
