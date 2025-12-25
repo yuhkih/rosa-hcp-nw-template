@@ -401,7 +401,6 @@ SSHの鍵は CloudFormation で Bastionがデプロイされた時に AWS 上に
 
 # 7. 環境の削除
 
-**ROSA HCP Cluster の削除**
 
 ## ROSA HCP Cluster の削除
 
