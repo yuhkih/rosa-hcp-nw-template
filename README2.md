@@ -9,7 +9,9 @@
 ![image](images/environment-overview.png)
 
 作業者はインターネット越しに環境にアクセスしますが、接続は SSH で暗号化されています。作業者の端末からは、ROSA クラスタにブラウザ、CLIでアクセスできます。
+
 AWS ではインターネットから `Private Subnet` に直接アクセスできません。そのため、`Public Subnet` の EC2インスタンスを経由して、`Private Subnet` の EC2インスタンスにアクセスしています。EC2インスタンスが2つ必要なのはそのためです。
+
 Public Subnet に設置した、EC2に `Security Group` は `Port 22 (SSH)` のみを開けています。さらに Source IP アドレスの条件を付けて、セキュリティを強化する事も可能です。
 
 
