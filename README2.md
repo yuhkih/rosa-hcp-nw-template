@@ -8,6 +8,8 @@
 
 ![image](images/environment-overview.png)
 
+OpenShift のコンポーネントは、AWS内の各リージョンに存在する Red Hat 管理の ECR から取得されるようになっています。そのため、ECR 用の VPC Endpoint 等が環境に必要になります。
+
 作業者はインターネット越しに環境にアクセスしますが、接続は SSH で暗号化されています。作業者の端末からは、ROSA クラスタにブラウザ、CLIでアクセスできます。
 
 AWS ではインターネットから `Private Subnet` に直接アクセスできません。そのため、`Public Subnet` の EC2インスタンスを経由して、`Private Subnet` の EC2インスタンスにアクセスしています。EC2インスタンスが2つ必要なのはそのためです。
