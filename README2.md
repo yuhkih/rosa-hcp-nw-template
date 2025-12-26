@@ -228,7 +228,7 @@ $
 
 ## CFn テンプレートの実行 
 
-以下の CloudFormation のテンプレートを使用してスタックを作成します。
+以下の CloudFormation のテンプレートを使用して、踏み台を含んだスタックを作成します。
 
 ```
 bastion-vpc-and-transit-gw-sz.yaml
