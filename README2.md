@@ -8,7 +8,7 @@
 
 ![image](images/environment-overview.png)
 
-OpenShift のコンポーネントは、AWS内の各リージョンに存在する Red Hat 管理の ECR から取得されるようになっています。そのため、ECR 用の VPC Endpoint 等が環境に必要になります。
+ROSA のインストールは、通称 `Zero Egress` と呼ばれるオプションを使ってインストールします。そのため、`OpenShift` のコンポーネントは、AWS内の各リージョンに存在する Red Hat 管理の ECR から取得されるようになっています。そのため、ECR 用の VPC Endpoint 等が環境に必要になります。
 
 作業者はインターネット越しに環境にアクセスしますが、接続は SSH で暗号化されています。作業者の端末からは、ROSA クラスタにブラウザ、CLIでアクセスできます。
 
