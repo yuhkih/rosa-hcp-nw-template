@@ -189,7 +189,7 @@ echo $SUBNET_IDS, $CLUSTER_NAME, $AWS_REGION, $OIDC_ID
 全ての変数がセットされている事を確認したら、以下のコマンドでインストールを開始します。
 
 ```
-rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp --operator-roles-prefix=$CLUSTER_NAME --region $REGION --subnet-ids=$SUBNET_IDS --oidc-config-id $OIDC_ID --private --default-ingress-private  --properties zero_egress:true -m auto -y
+rosa create cluster --cluster-name=$CLUSTER_NAME --sts --hosted-cp --operator-roles-prefix=$CLUSTER_NAME --region $AWS_REGION --subnet-ids=$SUBNET_IDS --oidc-config-id $OIDC_ID --private --default-ingress-private  --properties zero_egress:true -m auto -y
 ```
 
 コマンド自体はすぐに完了します。クラスターのインストール完了を以下のコマンドで待ちます。
